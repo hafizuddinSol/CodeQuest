@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "799057153413",
+    "firebase_url": "https://codequest-b1390-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "codequest-b1390",
+    "storage_bucket": "codequest-b1390.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:799057153413:android:93561386a9cb14b23c08ec",
+        "android_client_info": {
+          "package_name": "com.example.sulam_project"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDbKpYx9mwUOtXi_G7JKcFNjemlBpJxg44"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
