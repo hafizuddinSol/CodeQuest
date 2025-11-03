@@ -6,14 +6,11 @@ class DashboardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dashboard'),
-        backgroundColor: const Color(0xFF4256A4),
-      ),
+      appBar: AppBar(title: const Text('Dashboard')),
       body: const Center(
         child: Text(
-          'Welcome to Dashboard!',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          'Welcome! Registration Successful.',
+          style: TextStyle(fontSize: 20),
         ),
       ),
     );

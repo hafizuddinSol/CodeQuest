@@ -1,57 +1,16 @@
 import 'package:flutter/material.dart';
-
-const Color kPrimaryColor = Color(0xFF4256A4);
-const Color kSecondaryColor = Color(0xFF333A40);
-const Color kBackgroundColor = Color(0xFFF0F0FF);
-const double kBorderRadius = 12.0;
-
-class PrimaryButton extends StatelessWidget {
-  final String text;
-  final VoidCallback onPressed;
-  final bool enabled;
-
-  const PrimaryButton({
-    super.key,
-    required this.text,
-    required this.onPressed,
-    this.enabled = true,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: enabled ? onPressed : null,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: kPrimaryColor,
-          disabledBackgroundColor: kPrimaryColor.withOpacity(0.5),
-          padding: const EdgeInsets.symmetric(vertical: 15),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(kBorderRadius),
-          ),
-        ),
-        child: Text(
-          text,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-    );
-  }
-}
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../widgets/primary_button.dart';
 
 class RegisterPage extends StatefulWidget {
-  final Function(String username, String email) onRegister;
   final VoidCallback onSwitchToLogin;
+  final VoidCallback onRegistered; // callback to navigate to dashboard
 
   const RegisterPage({
     super.key,
-    required this.onRegister,
     required this.onSwitchToLogin,
+    required this.onRegistered,
   });
 
   @override
@@ -62,20 +21,24 @@ class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
 
   final _usernameController = TextEditingController();
-  final _passwordController = TextEditingController();
   final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
 
-  final _usernameFocus = FocusNode();
-  final _passwordFocus = FocusNode();
-  final _emailFocus = FocusNode();
+  String? _selectedRole;
+  final List<String> _roles = ['Student', 'Teacher'];
 
-  void _submit() {
-    if (_formKey.currentState!.validate()) {
-      widget.onRegister(
-        _usernameController.text,
-        _emailController.text,
-      );
-    }
+  @override
+  void initState() {
+    super.initState();
+    _selectedRole = _roles.first;
+  }
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   bool _isEmailValid(String email) {
@@ -83,83 +46,124 @@ class _RegisterPageState extends State<RegisterPage> {
     return regex.hasMatch(email);
   }
 
+  Future<void> _submit() async {
+    if (_formKey.currentState!.validate() && _selectedRole != null) {
+      try {
+        // Create Firebase Auth user
+        UserCredential userCredential = await FirebaseAuth.instance
+            .createUserWithEmailAndPassword(
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim());
+
+        String uid = userCredential.user!.uid;
+
+        // Save extra info in Firestore
+        await FirebaseFirestore.instance.collection('users').doc(uid).set({
+          'username': _usernameController.text.trim(),
+          'email': _emailController.text.trim(),
+          'role': _selectedRole,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+
+        widget.onRegistered();
+      } on FirebaseAuthException catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Registration failed: ${e.message}')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Register Page', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: kSecondaryColor,
-        elevation: 0,
+        title: const Text("Register", style: TextStyle(color: Colors.white)),
+        backgroundColor: const Color(0xFF4256A4),
       ),
-      backgroundColor: kBackgroundColor,
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 400),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(32.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  const SizedBox(height: 50),
-                  TextFormField(
-                    controller: _usernameController,
-                    focusNode: _usernameFocus,
-                    textInputAction: TextInputAction.next,
-                    onFieldSubmitted: (_) => FocusScope.of(context).requestFocus(_passwordFocus),
-                    decoration: const InputDecoration(hintText: "Create username"),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) return '';
-                      if (value.length < 4) return 'Username must be at least 4 characters.';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _passwordController,
-                    focusNode: _passwordFocus,
-                    obscureText: true,
-                    textInputAction: TextInputAction.next,
-                    onFieldSubmitted: (_) => FocusScope.of(context).requestFocus(_emailFocus),
-                    decoration: const InputDecoration(hintText: "Create password"),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) return '';
-                      if (value.length < 6) return 'Password must be at least 6 characters.';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _emailController,
-                    focusNode: _emailFocus,
-                    keyboardType: TextInputType.emailAddress,
-                    textInputAction: TextInputAction.done,
-                    onFieldSubmitted: (_) => _submit(),
-                    decoration: const InputDecoration(hintText: "Enter email"),
-                    validator: (value) {
-                      if (value == null || value.isEmpty || !_isEmailValid(value)) {
-                        return 'Please enter a valid email address.';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 30),
-                  PrimaryButton(
-                    text: "Create",
-                    onPressed: _submit,
-                  ),
-                  const SizedBox(height: 20),
-                  TextButton(
-                    onPressed: widget.onSwitchToLogin,
-                    child: const Text(
-                      "Already have an account? Log in",
-                      style: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(32.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              const SizedBox(height: 50),
+              // Username
+              TextFormField(
+                controller: _usernameController,
+                decoration: const InputDecoration(
+                  hintText: "Create username",
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) return 'Enter username';
+                  if (value.length < 4) return 'At least 4 characters';
+                  return null;
+                },
               ),
-            ),
+              const SizedBox(height: 16),
+              // Email
+              TextFormField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  hintText: "Enter email",
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) return 'Enter email';
+                  if (!_isEmailValid(value)) return 'Invalid email';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              // Password
+              TextFormField(
+                controller: _passwordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  hintText: "Create password",
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) return 'Enter password';
+                  if (value.length < 6) return 'At least 6 characters';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              // Role Dropdown
+              DropdownButtonFormField<String>(
+                value: _selectedRole,
+                items: _roles.map((role) {
+                  return DropdownMenuItem(value: role, child: Text(role));
+                }).toList(),
+                onChanged: (value) => setState(() => _selectedRole = value),
+                decoration: const InputDecoration(
+                  hintText: "Select role",
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 30),
+              // Create Button
+              PrimaryButton(
+                text: "Create Account",
+                onPressed: _submit,
+              ),
+              const SizedBox(height: 20),
+              TextButton(
+                onPressed: widget.onSwitchToLogin,
+                child: const Text("Already have an account? Log in"),
+              ),
+            ],
           ),
         ),
       ),

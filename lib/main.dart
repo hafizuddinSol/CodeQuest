@@ -1,8 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'pages/registerPage.dart';
 import 'pages/dashboardPage.dart';
 
-void main() {
+const Color kPrimaryColor = Color(0xFF4256A4);
+const Color kBackgroundColor = Color(0xFFF0F0FF);
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const MyApp());
 }
 
@@ -14,37 +23,33 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'CodeQuest Auth',
       theme: ThemeData(
-        primaryColor: const Color(0xFF4256A4),
-        scaffoldBackgroundColor: const Color(0xFFF0F0FF),
+        primaryColor: kPrimaryColor,
+        scaffoldBackgroundColor: kBackgroundColor,
       ),
       home: const RegisterPageWrapper(),
     );
   }
 }
 
-/// A wrapper to handle navigation after registration
+/// Wrapper for handling navigation after registration
 class RegisterPageWrapper extends StatelessWidget {
   const RegisterPageWrapper({super.key});
 
   void _navigateToDashboard(BuildContext context) {
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => const DashboardPage()),
+      MaterialPageRoute(builder: (_) => const DashboardPage()),
     );
   }
 
   void _switchToLogin() {
     debugPrint("Switch to login clicked");
-    // Implement login page navigation if needed
   }
 
   @override
   Widget build(BuildContext context) {
     return RegisterPage(
-      onRegister: (String username, String email) {
-        debugPrint("Registered: $username, $email");
-        _navigateToDashboard(context);
-      },
+      onRegistered: () => _navigateToDashboard(context),
       onSwitchToLogin: _switchToLogin,
     );
   }

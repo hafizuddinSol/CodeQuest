@@ -90,4 +90,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'codequest-b1390.firebasestorage.app',
     measurementId: 'G-LP676NQRP6',
   );
+
 }
