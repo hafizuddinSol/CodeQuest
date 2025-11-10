@@ -38,4 +38,16 @@ class FirebaseService {
   Stream<QuerySnapshot> getAllResults() {
     return _db.collection('game_results').snapshots();
   }
+
+  // Save a flowchart created by a teacher
+  Future<void> saveFlowchart({
+    required String teacherName,
+    required List<String> flowchart,
+  }) async {
+    await _db.collection('teacher_flowcharts').add({
+      'teacherName': teacherName,
+      'flowchart': flowchart,
+      'createdAt': Timestamp.now(),
+    });
+  }
 }

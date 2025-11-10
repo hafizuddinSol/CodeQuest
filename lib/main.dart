@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'pages/registerPage.dart';
 import 'pages/dashboardPage.dart';
+import 'pages/registerPageWrapper.dart';
+import '../miniGame_teacher/dashboard_minigame.dart';
+import 'miniGame_student/student_dashboard.dart';
 
 const Color kPrimaryColor = Color(0xFF4256A4);
 const Color kBackgroundColor = Color(0xFFF0F0FF);
@@ -12,6 +14,7 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
   runApp(const MyApp());
 }
 
@@ -28,30 +31,6 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: kBackgroundColor,
       ),
       home: const RegisterPageWrapper(),
-    );
-  }
-}
-
-/// Wrapper to handle navigation after registration
-class RegisterPageWrapper extends StatelessWidget {
-  const RegisterPageWrapper({super.key});
-
-  void _navigateToDashboard(BuildContext context) {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const DashboardPage()), // integrated A’s dashboard
-    );
-  }
-
-  void _switchToLogin() {
-    debugPrint("Switch to login clicked");
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return RegisterPage(
-      onRegistered: () => _navigateToDashboard(context),
-      onSwitchToLogin: _switchToLogin,
     );
   }
 }

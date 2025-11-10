@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
-import 'playGame.dart';
+import 'package:sulam_project/pages/dashboardPage.dart';
 import 'gameScore.dart';
+import 'FlowchartBuilderGameStudent.dart';
+
 
 class StudentDashboard extends StatelessWidget {
   final String studentName;
 
-  // Default gameTitle for the student
-  final String gameTitle;
-
   const StudentDashboard({
     super.key,
     required this.studentName,
-    this.gameTitle = 'Drag Game', // default game
   });
 
   @override
@@ -20,6 +18,53 @@ class StudentDashboard extends StatelessWidget {
       appBar: AppBar(
         title: const Text("Student Dashboard"),
         backgroundColor: Colors.indigo,
+      ),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: const BoxDecoration(color: Colors.indigo),
+              child: Text(
+                "Hello, $studentName 👋",
+                style: const TextStyle(color: Colors.white, fontSize: 20),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.dashboard),
+              title: const Text("Main Dashboard"),
+              onTap: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => DashboardPage(
+                      userRole: 'student',
+                      username: studentName,
+                    ),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.notifications),
+              title: const Text("Notifications"),
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Notifications clicked")),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.lightbulb),
+              title: const Text("Tips of the Day"),
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Tips of the Day clicked")),
+                );
+              },
+            ),
+          ],
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -36,14 +81,13 @@ class StudentDashboard extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => PlayGamePage(
+                    builder: (_) => FlowchartBuilderGameStudent(
                       studentName: studentName,
-                      gameTitle: gameTitle,
                     ),
                   ),
                 );
               },
-              child: Text("🎮 Play $gameTitle"),
+              child: const Text("🎮 Play Flowchart Builder Game"),
             ),
             const SizedBox(height: 16),
             ElevatedButton(

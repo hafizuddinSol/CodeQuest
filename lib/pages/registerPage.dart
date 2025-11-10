@@ -4,13 +4,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/primary_button.dart';
 
 class RegisterPage extends StatefulWidget {
+  final void Function(String role, String username) onRegistered;
   final VoidCallback onSwitchToLogin;
-  final VoidCallback onRegistered; // callback to navigate to dashboard
 
   const RegisterPage({
     super.key,
-    required this.onSwitchToLogin,
     required this.onRegistered,
+    required this.onSwitchToLogin,
   });
 
   @override
@@ -19,7 +19,6 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
-
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -49,7 +48,7 @@ class _RegisterPageState extends State<RegisterPage> {
   Future<void> _submit() async {
     if (_formKey.currentState!.validate() && _selectedRole != null) {
       try {
-        // 🔹 Create Firebase Auth user
+        // Create user in Firebase Auth
         UserCredential userCredential = await FirebaseAuth.instance
             .createUserWithEmailAndPassword(
           email: _emailController.text.trim(),
@@ -58,42 +57,16 @@ class _RegisterPageState extends State<RegisterPage> {
 
         String uid = userCredential.user!.uid;
 
-        // 🔹 Generate auto-increment studentId (only for Students)
-        String? newStudentId;
-        if (_selectedRole == 'Student') {
-          final counterRef =
-          FirebaseFirestore.instance.collection('metadata').doc('counters');
-          await FirebaseFirestore.instance.runTransaction((transaction) async {
-            final snapshot = await transaction.get(counterRef);
-            int current = 0;
-
-            if (snapshot.exists) {
-              current = snapshot.data()?['studentCounter'] ?? 0;
-            }
-
-            int next = current + 1;
-            newStudentId = 'S${next.toString().padLeft(3, '0')}';
-
-            // update counter atomically
-            transaction.set(
-              counterRef,
-              {'studentCounter': next},
-              SetOptions(merge: true),
-            );
-          });
-        }
-
-        // 🔹 Save user info to Firestore
+        // Store user info in Firestore
         await FirebaseFirestore.instance.collection('users').doc(uid).set({
           'username': _usernameController.text.trim(),
           'email': _emailController.text.trim(),
           'role': _selectedRole,
-          'studentId': newStudentId, // null for Teachers
           'createdAt': FieldValue.serverTimestamp(),
         });
 
-        // 🔹 Navigate to Dashboard
-        widget.onRegistered();
+        // Callback to navigate to dashboard
+        widget.onRegistered(_selectedRole!, _usernameController.text.trim());
       } on FirebaseAuthException catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Registration failed: ${e.message}')),
@@ -116,6 +89,7 @@ class _RegisterPageState extends State<RegisterPage> {
           child: Column(
             children: [
               const SizedBox(height: 50),
+
               // Username
               TextFormField(
                 controller: _usernameController,
@@ -132,23 +106,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 },
               ),
               const SizedBox(height: 16),
-              // Email
-              TextFormField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  hintText: "Enter email",
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) return 'Enter email';
-                  if (!_isEmailValid(value)) return 'Invalid email';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
+
               // Password
               TextFormField(
                 controller: _passwordController,
@@ -166,12 +124,31 @@ class _RegisterPageState extends State<RegisterPage> {
                 },
               ),
               const SizedBox(height: 16),
-              // Role Dropdown
+
+              // Email
+              TextFormField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  hintText: "Enter email",
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) return 'Enter email';
+                  if (!_isEmailValid(value)) return 'Invalid email';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Role selection
               DropdownButtonFormField<String>(
                 value: _selectedRole,
-                items: _roles.map((role) {
-                  return DropdownMenuItem(value: role, child: Text(role));
-                }).toList(),
+                items: _roles
+                    .map((role) => DropdownMenuItem(value: role, child: Text(role)))
+                    .toList(),
                 onChanged: (value) => setState(() => _selectedRole = value),
                 decoration: const InputDecoration(
                   hintText: "Select role",
@@ -181,12 +158,15 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
               ),
               const SizedBox(height: 30),
-              // Create Button
+
+              // Create account button
               PrimaryButton(
                 text: "Create Account",
                 onPressed: _submit,
               ),
               const SizedBox(height: 20),
+
+              // Switch to login
               TextButton(
                 onPressed: widget.onSwitchToLogin,
                 child: const Text("Already have an account? Log in"),

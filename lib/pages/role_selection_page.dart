@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sulam_project/pages/dashboard_minigame.dart';
+import 'package:sulam_project/miniGame_teacher/dashboard_minigame.dart';
 import '../miniGame_student//student_dashboard.dart';
 
 

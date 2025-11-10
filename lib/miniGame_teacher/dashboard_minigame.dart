@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import '../miniGame_teacher/analyticsGame.dart';   // AnalyticsPage
-import '../miniGame_teacher/createGame.dart';      // CreateGamePage
-import '../miniGame_student/student_dashboard.dart'; // For demo navigation if needed
+import 'analyticsGame.dart';
+import 'FlowchartBuilderGame.dart';
+import '../miniGame_student/student_dashboard.dart';
 
 // ---------------- Placeholder Pages ----------------
-// Replace with your real implementations
 class StudentsPage extends StatelessWidget {
   const StudentsPage({Key? key}) : super(key: key);
 
@@ -106,7 +105,7 @@ class _DashboardMiniGamePageState extends State<DashboardMiniGamePage> {
                       Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (_) => const CreateGamePage()));
+                              builder: (_) => FlowchartBuilderGame(teacherName: widget.teacherName)));
                     }),
                     _buildTile('Leaderboard', Icons.emoji_events, () {
                       Navigator.push(

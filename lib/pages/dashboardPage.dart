@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import '../widgets/notification_widget.dart';
 import '../widgets/progress_widget.dart';
-import 'dashboard_minigame.dart';
+import '../miniGame_teacher/dashboard_minigame.dart';
+import '../miniGame_student/student_dashboard.dart';
 import 'role_selection_page.dart';
 
 class DashboardPage extends StatefulWidget {
-  const DashboardPage({super.key});
+  final String userRole; // 'teacher' or 'student'
+  final String username; // the user's name
+
+  const DashboardPage({super.key, required this.userRole, required this.username});
 
   @override
   State<DashboardPage> createState() => _DashboardPageState();
@@ -31,7 +35,9 @@ class _DashboardPageState extends State<DashboardPage> {
 
   void _removeWidget(int index) {
     setState(() {
-      widgets.removeAt(index);
+      if (index < widgets.length) {
+        widgets.removeAt(index);
+      }
     });
   }
 
@@ -58,14 +64,51 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   void _navigateToMiniGame() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const RoleSelectionPage()),
-    );
+    if (widget.userRole == 'teacher') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => DashboardMiniGamePage(teacherName: widget.username),
+        ),
+      );
+    } else if (widget.userRole == 'student') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => StudentDashboard(studentName: widget.username),
+        ),
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const RoleSelectionPage()),
+      );
+    }
   }
 
   void _showAddWidgetSheet() {
-    // ... your existing modal bottom sheet code
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return SizedBox(
+          height: 150,
+          child: Column(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.notifications),
+                title: const Text('Add Notification Widget'),
+                onTap: () => _addWidget('notifications'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.show_chart),
+                title: const Text('Add Progress Widget'),
+                onTap: () => _addWidget('progress'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -76,18 +119,18 @@ class _DashboardPageState extends State<DashboardPage> {
         backgroundColor: const Color(0xFF333333),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
+          children: [
             Text(
               'Dashboard',
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
             ),
             Text(
-              'Pixel 5',
-              style: TextStyle(
+              'Welcome, ${widget.username}',
+              style: const TextStyle(
                 fontSize: 12,
                 color: Color(0xFFBDBDBD),
               ),
