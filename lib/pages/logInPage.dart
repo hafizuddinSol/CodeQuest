@@ -7,7 +7,10 @@ const Color kPrimaryColor = Color(0xFF4256A4);
 const Color kBackgroundColor = Color(0xFFF0F0FF);
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  final void Function(String role, String username) ? onLoginSuccess;
+  final VoidCallback? onSwitchToRegister;
+
+  const LoginPage({super.key, this.onLoginSuccess, this.onSwitchToRegister});
 
   @override
   State<LoginPage> createState() => _LoginPageState();

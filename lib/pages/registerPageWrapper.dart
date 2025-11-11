@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../miniGame_teacher/dashboard_minigame.dart';
 import '../miniGame_student/student_dashboard.dart';
 import 'registerPage.dart';
-import 'loginPage.dart';
+import 'logInPage.dart';
 
 class RegisterPageWrapper extends StatelessWidget {
   const RegisterPageWrapper({super.key});
@@ -30,13 +30,10 @@ class RegisterPageWrapper extends StatelessWidget {
       context,
       MaterialPageRoute(
         builder: (_) => LoginPage(
-          onLoginSuccess: () {
-            // Optionally navigate to dashboard after login
-          },
+          onLoginSuccess: (role, username)  => _navigateToDashboard(context, role, username),
           onSwitchToRegister: () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const RegisterPageWrapper()),
+            Navigator.pushReplacement(context,
+            MaterialPageRoute(builder: (_) => const RegisterPageWrapper()),
             );
           },
         ),
