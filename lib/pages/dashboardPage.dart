@@ -4,7 +4,8 @@ import '../widgets/progress_widget.dart';
 import '../miniGame_teacher/dashboard_minigame.dart';
 import '../miniGame_student/student_dashboard.dart';
 import 'role_selection_page.dart';
-import '../forum/home_screen.dart'; // Import HomeScreen
+import '../forum/home_screen.dart';
+import '../learning/learningHomePage.dart'; // ✅ Import your Learning Home Page
 
 class DashboardPage extends StatefulWidget {
   final String userRole; // 'teacher' or 'student'
@@ -139,14 +140,24 @@ class _DashboardPageState extends State<DashboardPage> {
           ],
         ),
         actions: [
+          // ✅ Learning Page Button
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const LearningHomePage()),
+              );
+            },
+            icon: const Icon(Icons.menu_book, color: Colors.lightBlueAccent),
+            tooltip: 'Learning Homepage',
+          ),
+
           // Forum Button
           IconButton(
             onPressed: () {
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(
-                  builder: (_) => const HomeScreen(),
-                ),
+                MaterialPageRoute(builder: (_) => const HomeScreen()),
               );
             },
             icon: const Icon(Icons.forum, color: Colors.green),
@@ -160,7 +171,7 @@ class _DashboardPageState extends State<DashboardPage> {
             tooltip: 'Mini Game',
           ),
 
-          // FAB for adding widgets
+          // Add Widget Button
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
             child: FloatingActionButton(
