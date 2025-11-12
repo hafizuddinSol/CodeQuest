@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sulam_project/pages/dashboardPage.dart';
 import 'gameScore.dart';
 import 'FlowchartBuilderGameStudent.dart';
+import '../../forum/home_screen.dart';
 
 
 class StudentDashboard extends StatelessWidget {
@@ -45,6 +46,19 @@ class StudentDashboard extends StatelessWidget {
                 );
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.forum),
+              title: const Text("Forum"),
+              onTap: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const HomeScreen(),
+                  ),
+                );
+              },
+            ),
+
             ListTile(
               leading: const Icon(Icons.notifications),
               title: const Text("Notifications"),

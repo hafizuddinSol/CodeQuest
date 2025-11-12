@@ -4,6 +4,7 @@ import '../widgets/progress_widget.dart';
 import '../miniGame_teacher/dashboard_minigame.dart';
 import '../miniGame_student/student_dashboard.dart';
 import 'role_selection_page.dart';
+import '../forum/home_screen.dart'; // Import HomeScreen
 
 class DashboardPage extends StatefulWidget {
   final String userRole; // 'teacher' or 'student'
@@ -120,9 +121,9 @@ class _DashboardPageState extends State<DashboardPage> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               'Dashboard',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
@@ -138,11 +139,28 @@ class _DashboardPageState extends State<DashboardPage> {
           ],
         ),
         actions: [
+          // Forum Button
+          IconButton(
+            onPressed: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const HomeScreen(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.forum, color: Colors.green),
+            tooltip: 'Forum',
+          ),
+
+          // Mini Game Button
           IconButton(
             onPressed: _navigateToMiniGame,
             icon: const Icon(Icons.videogame_asset, color: Colors.orange),
             tooltip: 'Mini Game',
           ),
+
+          // FAB for adding widgets
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
             child: FloatingActionButton(

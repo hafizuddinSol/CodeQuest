@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'pages/dashboardPage.dart';
+
+// Screens
 import 'pages/registerPageWrapper.dart';
-import '../miniGame_teacher/dashboard_minigame.dart';
-import 'miniGame_student/student_dashboard.dart';
+import 'forum/home_screen.dart';
 
 const Color kPrimaryColor = Color(0xFF4256A4);
 const Color kBackgroundColor = Color(0xFFF0F0FF);
@@ -14,7 +14,6 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-
   runApp(const MyApp());
 }
 
@@ -24,13 +23,24 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'CodeQuest Auth',
+      title: 'CodeQuest',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primaryColor: kPrimaryColor,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: kPrimaryColor,
+          brightness: Brightness.light,
+        ),
         scaffoldBackgroundColor: kBackgroundColor,
+        useMaterial3: true,
       ),
+      // Start at Register Page
       home: const RegisterPageWrapper(),
+
+      // Add routes for navigation
+      routes: {
+        '/home': (context) => const HomeScreen(),
+        '/register': (context) => const RegisterPageWrapper(),
+      },
     );
   }
 }
