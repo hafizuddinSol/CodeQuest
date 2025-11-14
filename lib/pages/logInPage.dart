@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dashboardPage_student.dart'; // Import your DashboardPage
 import 'registerPage.dart';
+import 'dashboardPage_teacher.dart';
 
 const Color kPrimaryColor = Color(0xFF4256A4);
 const Color kBackgroundColor = Color(0xFFF0F0FF);
@@ -74,31 +75,27 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       // ==== ROLE-BASED REDIRECT ====
-      if(role == 'Teacher') {
-        /*
+      if (role == 'Teacher') {
         Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-                builder: (_) => DashboardPage_Teacher(
-                    userRole: role,
-                    username: input,
-                ),
+          context,
+          MaterialPageRoute(
+            builder: (_) => DashboardPage_Teacher(
+              userRole: role,
+              username: input,
             ),
+          ),
         );
-        */
       } else {
         Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-                builder: (_) => DashboardPage_Student(
-                    userRole: role,
-                    username: input,
-                ),
+          context,
+          MaterialPageRoute(
+            builder: (_) => DashboardPage_Student(
+              userRole: role,
+              username: input,
             ),
+          ),
         );
       }
-
-
     } on FirebaseAuthException catch (e) {
       String errorMessage;
       switch (e.code) {

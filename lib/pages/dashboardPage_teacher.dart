@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../widgets/notification_widget.dart';
-import '../widgets/progress_widget.dart';
 import '../miniGame_teacher/dashboard_minigame.dart';
 import '../miniGame_student/student_dashboard.dart';
 import '../forum/home_screen.dart';
@@ -12,37 +11,31 @@ import 'profilePage.dart';
 const Color kPrimaryColor = Color(0xFF4256A4);
 const Color kBackgroundColor = Color(0xFFF0F0FF);
 
-class DashboardPage_Student extends StatefulWidget {
+class DashboardPage_Teacher extends StatefulWidget {
   final String userRole;
   final String username;
 
-  const DashboardPage_Student({
+  const DashboardPage_Teacher({
     super.key,
     required this.userRole,
     required this.username,
   });
 
   @override
-  State<DashboardPage_Student> createState() => _DashboardPage_StudentState();
+  State<DashboardPage_Teacher> createState() => _DashboardPage_TeacherState();
 }
 
-class _DashboardPage_StudentState extends State<DashboardPage_Student> {
+class _DashboardPage_TeacherState extends State<DashboardPage_Teacher> {
   final List<Widget> widgets = [];
 
   @override
   void initState() {
     super.initState();
-    // Initialize default widgets
-    widgets.addAll([
-      NotificationWidget(
-        key: UniqueKey(),
-        onRemove: () => _removeWidget(0),
-      ),
-      ProgressWidget(
-        key: UniqueKey(),
-        onRemove: () => _removeWidget(1),
-      ),
-    ]);
+    // Only add NotificationWidget by default for teacher
+    widgets.add(NotificationWidget(
+      key: UniqueKey(),
+      onRemove: () => _removeWidget(0),
+    ));
   }
 
   void _removeWidget(int index) {
@@ -51,20 +44,13 @@ class _DashboardPage_StudentState extends State<DashboardPage_Student> {
     }
   }
 
-  void _addWidget(String type) {
+  void _addWidget() {
     setState(() {
       final newIndex = widgets.length;
-      if (type == 'notifications') {
-        widgets.add(NotificationWidget(
-          key: UniqueKey(),
-          onRemove: () => _removeWidget(newIndex),
-        ));
-      } else if (type == 'progress') {
-        widgets.add(ProgressWidget(
-          key: UniqueKey(),
-          onRemove: () => _removeWidget(newIndex),
-        ));
-      }
+      widgets.add(NotificationWidget(
+        key: UniqueKey(),
+        onRemove: () => _removeWidget(newIndex),
+      ));
     });
     Navigator.pop(context);
   }
@@ -97,7 +83,6 @@ class _DashboardPage_StudentState extends State<DashboardPage_Student> {
       ),
     );
 
-    // Navigate to LoginPage and remove all previous routes
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (_) => const LoginPage()),
@@ -109,18 +94,13 @@ class _DashboardPage_StudentState extends State<DashboardPage_Student> {
     showModalBottomSheet(
       context: context,
       builder: (_) => SizedBox(
-        height: 150,
+        height: 100,
         child: Column(
           children: [
             ListTile(
               leading: const Icon(Icons.notifications),
               title: const Text('Add Notification Widget'),
-              onTap: () => _addWidget('notifications'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.show_chart),
-              title: const Text('Add Progress Widget'),
-              onTap: () => _addWidget('progress'),
+              onTap: _addWidget,
             ),
           ],
         ),
@@ -224,7 +204,7 @@ class _DashboardPage_StudentState extends State<DashboardPage_Student> {
             ],
           ),
 
-          // Add Widget Button
+          // Add Notification Widget Button
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
             child: FloatingActionButton(

@@ -32,8 +32,9 @@ class RegisterPageWrapper extends StatelessWidget {
         builder: (_) => LoginPage(
           onLoginSuccess: (role, username)  => _navigateToDashboard(context, role, username),
           onSwitchToRegister: () {
-            Navigator.pushReplacement(context,
-            MaterialPageRoute(builder: (_) => const RegisterPageWrapper()),
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const LoginPage()),
             );
           },
         ),
