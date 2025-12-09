@@ -8,6 +8,10 @@ import '../forum/home_screen.dart';
 import '../learning/learningHomePage.dart';
 import 'logInPage.dart';
 import 'profilePage.dart';
+import '../widget_layout/layout_service.dart';
+import '../widget_layout/layout_model.dart';
+import '../widget_layout/widget_factory.dart';
+
 
 const Color kPrimaryColor = Color(0xFF2537B4);
 const Color kBackgroundColor = Color(0xFFF0F0FF);
@@ -29,6 +33,10 @@ class DashboardPage_Student extends StatefulWidget {
 class _DashboardPage_StudentState extends State<DashboardPage_Student> {
   final List<Widget> widgets = [];
 
+  final LayoutService _layoutService = LayoutService();
+  String userId = ""; // will store Firebase user ID
+
+
   // Filters
   bool showFilters = false;
   String timeFilter = "all";
@@ -38,57 +46,10 @@ class _DashboardPage_StudentState extends State<DashboardPage_Student> {
   void initState() {
     super.initState();
 
-    widgets.addAll([
-      NotificationWidget(
-        key: UniqueKey(),
-        onRemove: () => _removeWidget(0),
-        timeFilter: timeFilter,
-        topicFilter: topicFilter,
-      ),
-      ProgressWidget(
-        key: UniqueKey(),
-        onRemove: () => _removeWidget(1),
-      ),
-      RecentActivityWidget(
-        key: UniqueKey(),
-        onRemove: () => _removeWidget(2),   // index = 2
-      ),
-    ]);
-  }
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) userId = user.uid;
 
-  void _removeWidget(int index) {
-    if (index < widgets.length) {
-      setState(() => widgets.removeAt(index));
-    }
-  }
-
-  void _addWidget(String type) {
-    setState(() {
-      final newIndex = widgets.length;
-
-      if (type == 'notifications') {
-        widgets.add(NotificationWidget(
-          key: UniqueKey(),
-          onRemove: () => _removeWidget(newIndex),
-          timeFilter: timeFilter,
-          topicFilter: topicFilter,
-        ));
-      } else if (type == 'progress') {
-        widgets.add(ProgressWidget(
-          key: UniqueKey(),
-          onRemove: () => _removeWidget(newIndex),
-        ));
-      } else if (type == 'recent') {
-        widgets.add(
-          RecentActivityWidget(
-            key: UniqueKey(),
-            onRemove: () => _removeWidget(newIndex),
-          ),
-        );
-      }
-    });
-
-    Navigator.pop(context);
+    _loadSavedLayout();
   }
 
   void _navigateToMiniGame() {
@@ -360,4 +321,102 @@ class _DashboardPage_StudentState extends State<DashboardPage_Student> {
       ),
     );
   }
+
+  void _loadSavedLayout() async {
+    DashboardLayout? layout = await _layoutService.loadLayout(userId);
+
+    if (layout == null) {
+      // default
+      setState(() {
+        widgets.addAll([
+          WidgetFactory.buildWidget(
+            id: "notifications",
+            onRemove: () => _removeWidget(0),
+            timeFilter: timeFilter,
+            topicFilter: topicFilter,
+          ),
+          WidgetFactory.buildWidget(
+            id: "progress",
+            onRemove: () => _removeWidget(1),
+          ),
+          WidgetFactory.buildWidget(
+            id: "recent",
+            onRemove: () => _removeWidget(2),
+          ),
+        ]);
+      });
+      return;
+    }
+
+    setState(() {
+      widgets.clear();
+      for (int i = 0; i < layout.widgetOrder.length; i++) {
+        String id = layout.widgetOrder[i];
+
+        widgets.add(
+          WidgetFactory.buildWidget(
+            id: id,
+            onRemove: () => _removeWidget(i),
+            timeFilter: timeFilter,
+            topicFilter: topicFilter,
+          ),
+        );
+      }
+    });
+  }
+
+  void _saveLayout() {
+    final layout = DashboardLayout(
+      widgetOrder: widgets.map((w) {
+        if (w is NotificationWidget) return "notifications";
+        if (w is ProgressWidget) return "progress";
+        if (w is RecentActivityWidget) return "recent";
+        return "unknown";
+      }).toList(),
+    );
+
+    _layoutService.saveLayout(userId, layout);
+  }
+
+  // Corrected: Add widget + save layout
+  void _addWidget(String type) {
+    setState(() {
+      final newIndex = widgets.length;
+
+      if (type == 'notifications') {
+        widgets.add(NotificationWidget(
+          key: UniqueKey(),
+          onRemove: () => _removeWidget(newIndex),
+          timeFilter: timeFilter,
+          topicFilter: topicFilter,
+        ));
+      } else if (type == 'progress') {
+        widgets.add(ProgressWidget(
+          key: UniqueKey(),
+          onRemove: () => _removeWidget(newIndex),
+        ));
+      } else if (type == 'recent') {
+        widgets.add(
+          RecentActivityWidget(
+            key: UniqueKey(),
+            onRemove: () => _removeWidget(newIndex),
+          ),
+        );
+      }
+    });
+
+    _saveLayout();
+    Navigator.pop(context);
+  }
+
+  void _removeWidget(int index) {
+    if (index < widgets.length) {
+      setState(() {
+        widgets.removeAt(index);
+      });
+      _saveLayout();
+    }
+  }
+
+
 }
