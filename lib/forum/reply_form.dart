@@ -1,6 +1,7 @@
+//reply_form.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'user_service.dart';
+//import 'user_service.dart';
 
 class ReplyForm extends StatefulWidget {
   final String questionId;
@@ -43,7 +44,8 @@ class _ReplyFormState extends State<ReplyForm> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Your Reply',
+            // TRANSLATED: 'Your Reply' -> 'Balasan Anda'
+            'Mesej Anda',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -54,7 +56,8 @@ class _ReplyFormState extends State<ReplyForm> {
           TextField(
             controller: _messageController,
             decoration: InputDecoration(
-              hintText: 'Write your reply...',
+              // TRANSLATED: 'Write your reply...' -> 'Tulis balasan anda...'
+              hintText: 'Tulis mesej anda...',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -107,7 +110,8 @@ class _ReplyFormState extends State<ReplyForm> {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: const Text('Reply posted successfully'),
+                          // TRANSLATED: 'Reply posted successfully' -> 'Balasan berjaya dihantar'
+                          content: const Text('Mesej berjaya dihantar'),
                           backgroundColor: Colors.green[600],
                           behavior: SnackBarBehavior.floating,
                           shape: RoundedRectangleBorder(
@@ -121,7 +125,8 @@ class _ReplyFormState extends State<ReplyForm> {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: const Text('Failed to post reply'),
+                          // TRANSLATED: 'Failed to post reply' -> 'Balasan gagal dihantar'
+                          content: const Text('Mesej gagal dihantar'),
                           backgroundColor: Colors.red[600],
                           behavior: SnackBarBehavior.floating,
                           shape: RoundedRectangleBorder(
@@ -130,7 +135,7 @@ class _ReplyFormState extends State<ReplyForm> {
                         ),
                       );
                     }
-                  } finally {
+                  } finally { // finally - always runs, whether success or error.
                     setState(() {
                       _isSubmitting = false;
                     });
@@ -153,7 +158,8 @@ class _ReplyFormState extends State<ReplyForm> {
                     strokeWidth: 2.0,
                   ),
                 )
-                    : const Text('Post Reply'),
+                // TRANSLATED: 'Post Reply' -> 'Hantar Balasan'
+                    : const Text('Hantar Mesej'),
               ),
             ],
           ),
