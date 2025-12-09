@@ -13,6 +13,8 @@ void main() async {
   runApp(const CodeQuestApp());
 }
 
+//hi
+
 // Global instance for secure storage
 const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
 
