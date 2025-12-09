@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import '../../services/firebase_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class FlowchartBuilderGame extends StatefulWidget {
   final String teacherName; // Track which teacher created the flowchart
+  final String? gameId; // If null → new game, otherwise edit existing
 
-  const FlowchartBuilderGame({super.key, required this.teacherName});
+  const FlowchartBuilderGame({super.key, required this.teacherName, this.gameId});
 
   @override
   _FlowchartBuilderGameState createState() => _FlowchartBuilderGameState();
@@ -21,13 +22,87 @@ class _FlowchartBuilderGameState extends State<FlowchartBuilderGame> {
   ];
 
   List<String> flowchartSequence = [];
-  final FirebaseService _firebaseService = FirebaseService();
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.gameId != null) {
+      _loadFlowchart(); // Load existing flowchart if editing
+    }
+  }
+
+  Future<void> _loadFlowchart() async {
+    setState(() => _loading = true);
+    try {
+      final doc = await _db.collection('teacher_games').doc(widget.gameId).get();
+      if (doc.exists) {
+        final data = doc.data()!;
+        final List<dynamic> flow = data['flowchart'] ?? [];
+        flowchartSequence = flow.map((e) => e.toString()).toList();
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error loading flowchart: $e')),
+      );
+    }
+    setState(() => _loading = false);
+  }
+
+  Future<void> _saveFlowchart() async {
+    if (flowchartSequence.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Flowchart is empty! Add some blocks.')),
+      );
+      return;
+    }
+
+    setState(() => _loading = true);
+
+    try {
+      if (widget.gameId == null) {
+        // Create new flowchart
+        await _db.collection('teacher_games').add({
+          'teacherName': widget.teacherName,
+          'Carta Alir': flowchartSequence,
+          'createdAt': Timestamp.now(),
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Carta Alir created successfully!')),
+        );
+      } else {
+        // Update existing flowchart
+        await _db.collection('teacher_games').doc(widget.gameId).update({
+          'Carta Alir': flowchartSequence,
+          'updatedAt': Timestamp.now(),
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Carta Alir updated successfully!')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error saving Carta Alir: $e')),
+      );
+    }
+
+    setState(() => _loading = false);
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('🛠 Flowchart Builder (Teacher)'),
+        title: Text(widget.gameId == null
+            ? '🛠 Create Carta Alir'
+            : '🛠 Edit Carta Alir'),
         backgroundColor: Colors.indigo,
       ),
       body: Padding(
@@ -35,12 +110,10 @@ class _FlowchartBuilderGameState extends State<FlowchartBuilderGame> {
         child: Column(
           children: [
             const Text(
-              'Drag blocks to build your flowchart',
+              'Padankan jawapan Carta Alir dengan betul',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
-
-            // Main builder area
             Expanded(
               child: Row(
                 children: [
@@ -59,17 +132,14 @@ class _FlowchartBuilderGameState extends State<FlowchartBuilderGame> {
                       }).toList(),
                     ),
                   ),
-
                   const SizedBox(width: 20),
-
-                  // Right: Flowchart sequence (drop area)
+                  // Right: Flowchart drop area
                   Expanded(
                     flex: 2,
                     child: ListView.builder(
                       itemCount: flowchartSequence.length + 1,
                       itemBuilder: (context, index) {
                         if (index == flowchartSequence.length) {
-                          // Extra target at the end
                           return DragTarget<String>(
                             builder: (context, candidate, rejected) {
                               return Container(
@@ -81,7 +151,7 @@ class _FlowchartBuilderGameState extends State<FlowchartBuilderGame> {
                                   border: Border.all(color: Colors.black26),
                                 ),
                                 alignment: Alignment.center,
-                                child: const Text('Drop here to add block'),
+                                child: const Text('Letak di sini untuk tambah blok'),
                               );
                             },
                             onAccept: (data) {
@@ -91,7 +161,6 @@ class _FlowchartBuilderGameState extends State<FlowchartBuilderGame> {
                             },
                           );
                         } else {
-                          // Existing block
                           final block = flowchartSequence[index];
                           return DragTarget<String>(
                             builder: (context, candidate, rejected) {
@@ -124,37 +193,18 @@ class _FlowchartBuilderGameState extends State<FlowchartBuilderGame> {
                 ],
               ),
             ),
-
             const SizedBox(height: 16),
-
-            // Buttons
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 ElevatedButton.icon(
                   icon: const Icon(Icons.save),
-                  label: const Text('Save Flowchart'),
-                  onPressed: () async {
-                    if (flowchartSequence.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Flowchart is empty! Add some blocks.')),
-                      );
-                      return;
-                    }
-                    await _firebaseService.saveFlowchart(
-                      teacherName: widget.teacherName,
-                      flowchart: flowchartSequence,
-                    );
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Flowchart saved successfully!')),
-                    );
-                  },
+                  label: const Text('Save CartaAlir'),
+                  onPressed: _saveFlowchart,
                 ),
                 ElevatedButton.icon(
                   icon: const Icon(Icons.restart_alt),
-                  label: const Text('Clear Flowchart'),
+                  label: const Text('Clear CartaAlir'),
                   onPressed: () {
                     setState(() {
                       flowchartSequence.clear();

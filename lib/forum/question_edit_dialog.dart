@@ -44,8 +44,8 @@ class _QuestionEditDialogState extends State<QuestionEditDialog> {
   late String _selectedCategory;
   bool _isLoading = false;
 
-  // List of all available categories
-  final List<String> _categories = ['General', 'Pseudocode', 'Flowchart']; //Pseudokod Carta Alir
+  // List of all available categories (TRANSLATED)
+  final List<String> _categories = ['Am', 'Pseudokod', 'Carta Alir'];
 
   @override
   void initState() {
@@ -53,8 +53,8 @@ class _QuestionEditDialogState extends State<QuestionEditDialog> {
     _titleController = TextEditingController(text: widget.currentTitle);
     _contentController = TextEditingController(text: widget.currentContent);
 
-    // Initialize with the current category, default to 'General' if empty
-    _selectedCategory = widget.currentCategory.isNotEmpty ? widget.currentCategory : 'General';
+    // Initialize with the current category, default to 'Am' (Malay for General) if empty
+    _selectedCategory = widget.currentCategory.isNotEmpty ? widget.currentCategory : 'Am';
   }
 
   @override
@@ -69,7 +69,8 @@ class _QuestionEditDialogState extends State<QuestionEditDialog> {
     return AlertDialog(
       title: Row(
         children: [
-          const Text('Edit Question'),
+          // TRANSLATED: 'Edit Question' -> 'Edit Soalan'
+          const Text('Edit Soalan'),
           const Spacer(),
           IconButton(
             icon: const Icon(Icons.close),
@@ -82,16 +83,19 @@ class _QuestionEditDialogState extends State<QuestionEditDialog> {
           children: [
             TextField(
               controller: _titleController,
-              decoration: const InputDecoration(labelText: 'Title'),
+              // TRANSLATED: 'Title' -> 'Tajuk'
+              decoration: const InputDecoration(labelText: 'Tajuk'),
             ),
             TextField(
               controller: _contentController,
-              decoration: const InputDecoration(labelText: 'Content'),
+              // TRANSLATED: 'Content' -> 'Kandungan'
+              decoration: const InputDecoration(labelText: 'Kandungan'),
               maxLines: 3,
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              decoration: const InputDecoration(labelText: 'Category'),
+              // TRANSLATED: 'Category' -> 'Kategori'
+              decoration: const InputDecoration(labelText: 'Kategori'),
               items: _categories.map((String category) {
                 return DropdownMenuItem<String>(
                   value: category,
@@ -111,7 +115,8 @@ class _QuestionEditDialogState extends State<QuestionEditDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          // TRANSLATED: 'Cancel' -> 'Batal'
+          child: const Text('Batal'),
         ),
         ElevatedButton(
           onPressed: _isLoading ? null : () async {
@@ -133,7 +138,7 @@ class _QuestionEditDialogState extends State<QuestionEditDialog> {
               Map<String, dynamic> updateData = {
                 'title': title,
                 'content': content,
-                'category': _selectedCategory, // Always update category
+                'category': _selectedCategory, // This will save the Malay name to Firestore
               };
 
               await FirebaseFirestore.instance.collection('questions').doc(widget.questionId).update(updateData);
@@ -142,7 +147,8 @@ class _QuestionEditDialogState extends State<QuestionEditDialog> {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Question updated successfully'),
+                    // TRANSLATED: 'Question updated successfully' -> 'Soalan berjaya dikemaskini'
+                    content: Text('Soalan berjaya dikemaskini'),
                     backgroundColor: Colors.green,
                   ),
                 );
@@ -152,7 +158,8 @@ class _QuestionEditDialogState extends State<QuestionEditDialog> {
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Failed to update question'),
+                    // TRANSLATED: 'Failed to update question' -> 'Soalan gagal dikemaskini'
+                    content: Text('Soalan gagal dikemaskini'),
                     backgroundColor: Colors.red,
                   ),
                 );
@@ -176,7 +183,8 @@ class _QuestionEditDialogState extends State<QuestionEditDialog> {
               strokeWidth: 2.0,
             ),
           )
-              : const Text('Update'),
+          // TRANSLATED: 'Update' -> 'Kemaskini'
+              : const Text('Kemaskini'),
         ),
       ],
     );

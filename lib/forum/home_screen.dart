@@ -1,3 +1,4 @@
+//home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -16,7 +17,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
-  String _selectedCategory = 'All';
+  // TRANSLATED: 'All' -> 'Semua'
+  String _selectedCategory = 'Semua';
   bool _isTeacher = false;
   String _userName = "Loading...";
   String _userId = "";
@@ -26,10 +28,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late Animation<double> _fadeAnimation;
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  bool _showScrollToTop = false;
 
-  // Add a key to preserve the state of the list
-  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey = GlobalKey<RefreshIndicatorState>();
 
   @override
   void initState() {
@@ -47,17 +46,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
     _animationController.forward();
 
-    _scrollController.addListener(() {
-      if (_scrollController.offset > 200 && !_showScrollToTop) {
-        setState(() {
-          _showScrollToTop = true;
-        });
-      } else if (_scrollController.offset <= 200 && _showScrollToTop) {
-        setState(() {
-          _showScrollToTop = false;
-        });
-      }
-    });
   }
 
   @override
@@ -78,10 +66,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         _isTeacher = isTeacher;
         _userName = userName;
         _userId = userId;
-        _isLoading = false;
+        _isLoading = false; //meaning loading is complete
       });
     } catch (e) {
-      print('Error loading user data: $e');
+      print('Error loading user data: $e'); //exceptional
       setState(() {
         _isLoading = false;
       });
@@ -112,17 +100,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
-  void _scrollToTop() {
-    _scrollController.animateTo(
-      0,
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.easeInOut,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
+    if (_isLoading) { // means isLoading = true, which means the screen is still loading
       return Scaffold(
         body: Container(
           decoration: const BoxDecoration(
@@ -141,14 +121,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        CircularProgressIndicator(
+                        CircularProgressIndicator( //ni bulatan loading tu
                           valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
                         const SizedBox(height: 20),
                         Text(
-                          'Loading Forum...',
+                          'Memuatkan Forum...',
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.8),
+                            color: Colors.white,
                             fontSize: 16,
                           ),
                         ),
@@ -163,7 +143,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       );
     }
 
-    return Scaffold(
+    return Scaffold( // ni else dia which is false means the loading is complete
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -193,36 +173,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
         ),
       ),
-      floatingActionButton: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          if (_showScrollToTop)
-            FloatingActionButton(
-              heroTag: "scrollToTop",
-              onPressed: _scrollToTop,
-              backgroundColor: Colors.white,
-              mini: true,
-              elevation: 4,
-              child: const Icon(Icons.keyboard_arrow_up, color: Color(0xFF2537B4)),
+      floatingActionButton: FloatingActionButton(
+        heroTag: "addQuestion",
+        backgroundColor: const Color(0xFF2537B4),
+        elevation: 6,
+        onPressed: () {
+          showDialog(
+            context: context,
+            builder: (context) => AddQuestionDialog(
+              isTeacher: _isTeacher,
+              userName: _userName,
+              userId: _userId,
             ),
-          const SizedBox(height: 10),
-          FloatingActionButton(
-            heroTag: "addQuestion",
-            backgroundColor: const Color(0xFF2537B4),
-            elevation: 6,
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (context) => AddQuestionDialog(
-                  isTeacher: _isTeacher,
-                  userName: _userName,
-                  userId: _userId,
-                ),
-              );
-            },
-            child: const Icon(Icons.add, color: Colors.white),
-          ),
-        ],
+          );
+        },
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
@@ -238,7 +203,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
           Expanded(
             child: Text(
-              _isTeacher ? 'CodeQuest Forum (Teacher)' : 'CodeQuest Forum (Student)',
+              _isTeacher ? 'Forum Guru' : 'Forum Pelajar',
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 20,
@@ -297,7 +262,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   });
                 },
                 decoration: InputDecoration(
-                  hintText: 'Search questions...',
+                  hintText: 'Cari soalan...',
                   prefixIcon: const Icon(Icons.search, color: Color(0xFF2537B4)),
                   suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
@@ -321,10 +286,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 children: [
-                  _buildCategoryChip('All', Icons.apps),
-                  _buildCategoryChip('General', Icons.chat),
-                  _buildCategoryChip('Pseudocode', Icons.code), //pseudokod
-                  _buildCategoryChip('Flowchart', Icons.account_tree), //carta-alir
+                  _buildCategoryChip('Semua', Icons.apps),
+                  _buildCategoryChip('Am', Icons.chat),
+                  _buildCategoryChip('Pseudokod', Icons.code),
+                  _buildCategoryChip('Carta Alir', Icons.account_tree),
                 ],
               ),
             ),
@@ -372,11 +337,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final CollectionReference questions = FirebaseFirestore.instance.collection('questions');
 
     Query query = questions.orderBy('pinned', descending: true).orderBy('timestamp', descending: true);
-    if (_selectedCategory != 'All') {
+    if (_selectedCategory != 'Semua') {
       query = query.where('category', isEqualTo: _selectedCategory);
     }
 
-    // Use a custom scroll physics that supports both touch and trackpad scrolling
     return StreamBuilder<QuerySnapshot>(
       stream: query.snapshots(),
       builder: (context, snapshot) {
@@ -445,7 +409,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
           const SizedBox(height: 24),
           const Text(
-            'No questions yet',
+            'Tiada soalan lagi',
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
@@ -454,7 +418,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Be the first to ask a question!',
+            'Jadi yang pertama bertanya!',
             style: TextStyle(
               fontSize: 16,
               color: Colors.grey,
@@ -473,7 +437,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               );
             },
             icon: const Icon(Icons.add),
-            label: const Text('Ask a Question'),
+            label: const Text('Tanya Soalan'),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF2537B4),
               foregroundColor: Colors.white,
@@ -508,7 +472,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
           const SizedBox(height: 24),
           const Text(
-            'No results found',
+            'Tiada hasil dijumpai',
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
@@ -517,7 +481,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
           const SizedBox(height: 8),
           Text(
-            'No questions match "${_searchController.text}"',
+            'Tiada soalan sepadan dengan "${_searchController.text}"',
             style: const TextStyle(
               fontSize: 16,
               color: Colors.grey,
@@ -532,7 +496,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               });
             },
             icon: const Icon(Icons.clear),
-            label: const Text('Clear Search'),
+            label: const Text('Kosongkan Carian'),
             style: TextButton.styleFrom(
               foregroundColor: const Color(0xFF2537B4),
             ),
@@ -550,11 +514,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final authorId = question['authorId'] ?? '';
     final category = question.data().toString().contains('category')
         ? question['category']
-        : 'General';
+        : 'Am';
     final timestamp = question['timestamp'] as Timestamp?;
     final dateString = timestamp != null
         ? _formatTimestamp(timestamp.toDate())
-        : 'Unknown time';
+        : 'Masa tidak diketahui';
     final upvotes = question['upvotes'] ?? 0;
     final pinned = question['pinned'] ?? false;
     final userUpvoted = question['upvotedBy'] != null &&
@@ -617,7 +581,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       Icon(Icons.push_pin, size: 16, color: const Color(0xFF2537B4)),
                       const SizedBox(width: 4),
                       Text(
-                        'Pinned by teacher',
+                        'Dipin oleh guru',
                         style: TextStyle(
                           color: const Color(0xFF2537B4),
                           fontWeight: FontWeight.bold,
@@ -771,7 +735,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       if (isAuthor)
                         _buildActionTextButton(
                           icon: Icons.delete,
-                          label: 'Delete',
+                          label: 'Padam',
                           color: Colors.red,
                           onTap: () => _showDeleteConfirmation(context, id),
                         ),
@@ -861,9 +825,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Color _getCategoryColor(String category) {
     switch (category) {
-      case 'Pseudocode': //Pseudokod
+      case 'Pseudokod':
         return const Color(0xFF4CAF50);
-      case 'Flowchart': //Carta Alir
+      case 'Carta Alir':
         return const Color(0xFFFF9800);
       default:
         return const Color(0xFF2537B4);
@@ -875,13 +839,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final difference = now.difference(dateTime);
 
     if (difference.inMinutes < 1) {
-      return 'Just now';
+      return 'Baru sahaja';
     } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes} min${difference.inMinutes > 1 ? 's' : ''} ago';
+      return '${difference.inMinutes} minit yang lalu';
     } else if (difference.inHours < 24) {
-      return '${difference.inHours} hour${difference.inHours > 1 ? 's' : ''} ago';
+      return '${difference.inHours} jam yang lalu';
     } else if (difference.inDays < 7) {
-      return '${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
+      return '${difference.inDays} hari yang lalu';
     } else {
       return DateFormat('dd MMM yyyy').format(dateTime);
     }
@@ -917,12 +881,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-        title: const Text('Delete Question'),
-        content: const Text('Are you sure you want to delete this question? This action cannot be undone.'),
+        title: const Text('Padam Soalan'),
+        content: const Text('Adakah anda pasti ingin memadam soalan ini? Tindakan ini tidak boleh dibatalkan.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const Text('Batal'),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -933,7 +897,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Delete'),
+            child: const Text('Padam'),
           ),
         ],
       ),
@@ -960,7 +924,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Question deleted successfully'),
+            content: const Text('Soalan berjaya dipadam'),
             backgroundColor: Colors.green[600],
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -970,11 +934,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         );
       }
     } catch (e) {
-      print('Error deleting question: $e');
+      print('Error deleting question: $e'); //exceptional
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Failed to delete question'),
+            content: const Text('Soalan gagal dipadam'),
             backgroundColor: Colors.red[600],
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(

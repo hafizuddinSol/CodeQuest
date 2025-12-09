@@ -16,19 +16,34 @@ class ScorePage extends StatelessWidget {
       body: StreamBuilder<QuerySnapshot>(
         stream: _service.getStudentResults(studentName),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
 
-          final docs = (snapshot.data! as QuerySnapshot).docs;
-          if (docs.isEmpty) return const Center(child: Text('No scores yet'));
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-          return ListView(
-            children: docs.map((doc) {
-              final data = doc.data() as Map<String, dynamic>;
+          final docs = snapshot.data?.docs ?? [];
+
+          if (docs.isEmpty) {
+            return const Center(child: Text('No scores yet'));
+          }
+
+          return ListView.builder(
+            itemCount: docs.length,
+            itemBuilder: (context, index) {
+              final data = docs[index].data() as Map<String, dynamic>;
+              final date = (data['date'] as Timestamp?)?.toDate();
+              final formattedDate =
+              date != null ? "${date.day}/${date.month}/${date.year}" : "";
+
               return ListTile(
                 title: Text(data['gameTitle'] ?? ''),
+                subtitle: Text(formattedDate),
                 trailing: Text(data['score']?.toString() ?? '0'),
               );
-            }).toList(),
+            },
           );
         },
       ),
