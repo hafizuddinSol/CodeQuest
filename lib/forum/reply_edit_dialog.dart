@@ -55,7 +55,8 @@ class _ReplyEditDialogState extends State<ReplyEditDialog> {
     return AlertDialog(
       title: Row(
         children: [
-          const Text('Edit Reply'),
+          // TRANSLATED: 'Edit Reply' -> 'Edit Balasan'
+          const Text('Edit Mesej'),
           const Spacer(),
           IconButton(
             icon: const Icon(Icons.close),
@@ -66,7 +67,8 @@ class _ReplyEditDialogState extends State<ReplyEditDialog> {
       content: TextField(
         controller: _messageController,
         decoration: const InputDecoration(
-          labelText: 'Your Reply',
+          // TRANSLATED: 'Your Reply' -> 'Balasan Anda'
+          labelText: 'Mesej Anda',
           border: OutlineInputBorder(),
         ),
         maxLines: 3,
@@ -74,7 +76,8 @@ class _ReplyEditDialogState extends State<ReplyEditDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          // TRANSLATED: 'Cancel' -> 'Batal'
+          child: const Text('Batal'),
         ),
         ElevatedButton(
           onPressed: _isLoading ? null : () async {
@@ -105,7 +108,8 @@ class _ReplyEditDialogState extends State<ReplyEditDialog> {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Reply updated successfully'),
+                    // TRANSLATED: 'Reply updated successfully' -> 'Balasan berjaya dikemaskini'
+                    content: Text('Mesej berjaya dikemaskini'),
                     backgroundColor: Colors.green,
                   ),
                 );
@@ -115,7 +119,8 @@ class _ReplyEditDialogState extends State<ReplyEditDialog> {
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Failed to update reply'),
+                    // TRANSLATED: 'Failed to update reply' -> 'Balasan gagal dikemaskini'
+                    content: Text('Mesej gagal dikemaskini'),
                     backgroundColor: Colors.red,
                   ),
                 );
@@ -139,7 +144,8 @@ class _ReplyEditDialogState extends State<ReplyEditDialog> {
               strokeWidth: 2.0,
             ),
           )
-              : const Text('Update'),
+          // TRANSLATED: 'Update' -> 'Kemaskini'
+              : const Text('Kemaskini'),
         ),
       ],
     );
