@@ -1,6 +1,7 @@
+//add_question_dialog.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'user_service.dart';
+//import 'user_service.dart';
 
 class AddQuestionDialog extends StatefulWidget {
   final bool isTeacher;
@@ -24,11 +25,16 @@ class _AddQuestionDialogState extends State<AddQuestionDialog> with SingleTicker
   String? _selectedCategory;
   bool _pinQuestion = false;
   bool _isSubmitting = false;
+
+  // --- NEW: State variables for validation errors ---
+  bool _titleError = false;
+  bool _contentError = false;
+
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
-  // List of all available categories
-  final List<String> _categories = ['General', 'Pseudocode', 'Flowchart'];
+  // List of all available categories (TRANSLATED)
+  final List<String> _categories = ['Am', 'Pseudokod', 'Carta Alir'];
 
   @override
   void initState() {
@@ -75,13 +81,14 @@ class _AddQuestionDialogState extends State<AddQuestionDialog> with SingleTicker
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: const Color(0xFF2537B4).withOpacity(0.1),
+                      //color: const Color(0xFF2537B4),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(Icons.help_outline, color: Color(0xFF2537B4)),
                   ),
                   const SizedBox(width: 12),
                   const Text(
-                    'Ask a Question',
+                    'Tanya Soalan',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -96,34 +103,66 @@ class _AddQuestionDialogState extends State<AddQuestionDialog> with SingleTicker
                 ],
               ),
               const SizedBox(height: 20),
+              // --- ENHANCED: Title TextField with validation ---
               TextField(
                 controller: _titleController,
+                // --- NEW: Clear error when user starts typing ---
+                onChanged: (value) {
+                  if (_titleError && value.isNotEmpty) {
+                    setState(() {
+                      _titleError = false;
+                    });
+                  }
+                },
                 decoration: InputDecoration(
-                  labelText: 'Title',
-                  hintText: 'What\'s your question?',
+                  labelText: 'Tajuk',
+                  hintText: 'Apakah soalan anda?',
+                  // --- NEW: Dynamic border color based on error state ---
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: _titleError ? Colors.red : Colors.grey),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF2537B4), width: 2),
+                    borderSide: BorderSide(
+                      color: _titleError ? Colors.red : const Color(0xFF2537B4),
+                      width: 2,
+                    ),
                   ),
+                  // --- NEW: Display error text ---
+                  errorText: _titleError ? 'Tajuk adalah wajib' : null,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
               ),
               const SizedBox(height: 16),
+              // --- ENHANCED: Content TextField with validation ---
               TextField(
                 controller: _contentController,
+                // --- NEW: Clear error when user starts typing ---
+                onChanged: (value) {
+                  if (_contentError && value.isNotEmpty) {
+                    setState(() {
+                      _contentError = false;
+                    });
+                  }
+                },
                 decoration: InputDecoration(
-                  labelText: 'Content',
-                  hintText: 'Provide more details about your question...',
+                  labelText: 'Kandungan',
+                  hintText: 'Berikan lebih lanjut tentang soalan anda...',
+                  // --- NEW: Dynamic border color based on error state ---
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: _contentError ? Colors.red : Colors.grey),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF2537B4), width: 2),
+                    borderSide: BorderSide(
+                      color: _contentError ? Colors.red : const Color(0xFF2537B4),
+                      width: 2,
+                    ),
                   ),
+                  // --- NEW: Display error text ---
+                  errorText: _contentError ? 'Kandungan adalah wajib' : null,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
                 maxLines: 4,
@@ -131,7 +170,7 @@ class _AddQuestionDialogState extends State<AddQuestionDialog> with SingleTicker
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 decoration: InputDecoration(
-                  labelText: 'Category',
+                  labelText: 'Kategori',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -178,7 +217,7 @@ class _AddQuestionDialogState extends State<AddQuestionDialog> with SingleTicker
                         },
                         activeColor: const Color(0xFF2537B4),
                       ),
-                      const Text('Pin this question'),
+                      const Text('Pinkan soalan ini'),
                     ],
                   ),
                 ),
@@ -191,17 +230,41 @@ class _AddQuestionDialogState extends State<AddQuestionDialog> with SingleTicker
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     ),
-                    child: const Text('Cancel'),
+                    child: const Text('Batal'),
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton(
+                    // --- ENHANCED: onPressed logic with validation ---
                     onPressed: _isSubmitting ? null : () async {
                       final title = _titleController.text.trim();
                       final content = _contentController.text.trim();
-                      final category = _selectedCategory ?? 'General';
+                      final category = _selectedCategory ?? 'Am';
 
-                      if (title.isEmpty || content.isEmpty) return;
+                      // --- NEW: Reset previous errors before new validation ---
+                      setState(() {
+                        _titleError = false;
+                        _contentError = false;
+                      });
 
+                      // --- NEW: Validate fields and set error states ---
+                      bool hasError = false;
+                      if (title.isEmpty) {
+                        setState(() {
+                          _titleError = true;
+                        });
+                        hasError = true;
+                      }
+                      if (content.isEmpty) {
+                        setState(() {
+                          _contentError = true;
+                        });
+                        hasError = true;
+                      }
+
+                      // If there's an error, stop the submission
+                      if (hasError) return;
+
+                      // Proceed with submission if no errors
                       setState(() {
                         _isSubmitting = true;
                       });
@@ -224,7 +287,7 @@ class _AddQuestionDialogState extends State<AddQuestionDialog> with SingleTicker
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: const Text('Question posted successfully'),
+                              content: const Text('Soalan berjaya dihantar'),
                               backgroundColor: Colors.green[600],
                               behavior: SnackBarBehavior.floating,
                               shape: RoundedRectangleBorder(
@@ -238,7 +301,7 @@ class _AddQuestionDialogState extends State<AddQuestionDialog> with SingleTicker
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: const Text('Failed to post question'),
+                              content: const Text('Soalan gagal dihantar'),
                               backgroundColor: Colors.red[600],
                               behavior: SnackBarBehavior.floating,
                               shape: RoundedRectangleBorder(
@@ -270,7 +333,7 @@ class _AddQuestionDialogState extends State<AddQuestionDialog> with SingleTicker
                         strokeWidth: 2.0,
                       ),
                     )
-                        : const Text('Post'),
+                        : const Text('Hantar'),
                   ),
                 ],
               ),
@@ -283,9 +346,9 @@ class _AddQuestionDialogState extends State<AddQuestionDialog> with SingleTicker
 
   IconData _getCategoryIcon(String category) {
     switch (category) {
-      case 'Pseudocode': //Pseudokod
+      case 'Pseudokod':
         return Icons.code;
-      case 'Flowchart': //Carta-alir
+      case 'Carta Alir':
         return Icons.account_tree;
       default:
         return Icons.chat;
@@ -294,9 +357,9 @@ class _AddQuestionDialogState extends State<AddQuestionDialog> with SingleTicker
 
   Color _getCategoryColor(String category) {
     switch (category) {
-      case 'Pseudocode': //Pseudokod
+      case 'Pseudokod':
         return const Color(0xFF4CAF50);
-      case 'Flowchart': //Carta Alir
+      case 'Carta Alir':
         return const Color(0xFFFF9800);
       default:
         return const Color(0xFF2537B4);

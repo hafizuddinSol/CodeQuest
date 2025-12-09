@@ -1,3 +1,4 @@
+//question_details_screen.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -39,7 +40,6 @@ class _QuestionDetailsScreenState extends State<QuestionDetailsScreen> with Tick
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   final ScrollController _scrollController = ScrollController();
-  bool _showScrollToBottom = false;
 
   @override
   void initState() {
@@ -57,22 +57,6 @@ class _QuestionDetailsScreenState extends State<QuestionDetailsScreen> with Tick
       ),
     );
     _animationController.forward();
-
-    _scrollController.addListener(() {
-      if (_scrollController.hasClients &&
-          _scrollController.offset < _scrollController.position.maxScrollExtent - 200 &&
-          !_showScrollToBottom) {
-        setState(() {
-          _showScrollToBottom = true;
-        });
-      } else if (_scrollController.hasClients &&
-          _scrollController.offset >= _scrollController.position.maxScrollExtent - 200 &&
-          _showScrollToBottom) {
-        setState(() {
-          _showScrollToBottom = false;
-        });
-      }
-    });
   }
 
   @override
@@ -103,20 +87,10 @@ class _QuestionDetailsScreenState extends State<QuestionDetailsScreen> with Tick
         _userUpvoted = data['upvotedBy'] != null &&
             data['upvotedBy'].contains(widget.userId);
         _authorId = data['authorId'] ?? '';
-        _category = data['category'] ?? 'General';
+        _category = data['category'] ?? 'Am';
         // Use null-aware operator to safely access repliesCount
         _repliesCount = data['repliesCount'] ?? 0;
       });
-    }
-  }
-
-  void _scrollToBottom() {
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
-      );
     }
   }
 
@@ -159,7 +133,7 @@ class _QuestionDetailsScreenState extends State<QuestionDetailsScreen> with Tick
       questionId: widget.questionId,
       currentTitle: widget.title,
       currentContent: widget.content,
-      currentCategory: _category ?? 'General',
+      currentCategory: _category ?? 'Am',
     );
   }
 
@@ -170,12 +144,12 @@ class _QuestionDetailsScreenState extends State<QuestionDetailsScreen> with Tick
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-        title: const Text('Delete Question'),
-        content: const Text('Are you sure you want to delete this question? This action cannot be undone.'),
+        title: const Text('Padam Soalan'),
+        content: const Text('Adakah anda pasti ingin memadam soalan ini? Tindakan ini tidak boleh dibatalkan.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const Text('Batal'),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -186,7 +160,7 @@ class _QuestionDetailsScreenState extends State<QuestionDetailsScreen> with Tick
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Delete'),
+            child: const Text('Padam'),
           ),
         ],
       ),
@@ -209,11 +183,10 @@ class _QuestionDetailsScreenState extends State<QuestionDetailsScreen> with Tick
       // Then delete the question itself
       await FirebaseFirestore.instance.collection('questions').doc(widget.questionId).delete();
 
-      // Show a success message and go back
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Question deleted successfully'),
+            content: const Text('Soalan berjaya dipadam'),
             backgroundColor: Colors.green[600],
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -228,7 +201,7 @@ class _QuestionDetailsScreenState extends State<QuestionDetailsScreen> with Tick
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Failed to delete question'),
+            content: const Text('Soalan gagal dipadam'),
             backgroundColor: Colors.red[600],
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -249,7 +222,6 @@ class _QuestionDetailsScreenState extends State<QuestionDetailsScreen> with Tick
         .orderBy('timestamp', descending: true)
         .snapshots();
 
-    final isAuthor = _authorId == widget.userId;
 
     return Scaffold(
       body: Container(
@@ -290,16 +262,6 @@ class _QuestionDetailsScreenState extends State<QuestionDetailsScreen> with Tick
           ),
         ),
       ),
-      floatingActionButton: _showScrollToBottom
-          ? FloatingActionButton(
-        heroTag: "scrollToBottom",
-        onPressed: _scrollToBottom,
-        backgroundColor: Colors.white,
-        mini: true,
-        elevation: 4,
-        child: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF2537B4)),
-      )
-          : null,
     );
   }
 
@@ -314,7 +276,7 @@ class _QuestionDetailsScreenState extends State<QuestionDetailsScreen> with Tick
           ),
           Expanded(
             child: const Text(
-              'Question Details',
+              'Butiran Soalan',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 20,
@@ -332,7 +294,7 @@ class _QuestionDetailsScreenState extends State<QuestionDetailsScreen> with Tick
             ),
             child: Center(
               child: Text(
-                _userName.isNotEmpty ? _userName[0].toUpperCase() : 'U',
+                _userName.isNotEmpty ? _userName[0].toUpperCase() : 'U', //ni basically just tukar first letter of the username into uppercase
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -378,7 +340,7 @@ class _QuestionDetailsScreenState extends State<QuestionDetailsScreen> with Tick
                     Icon(Icons.push_pin, size: 16, color: const Color(0xFF2537B4)),
                     const SizedBox(width: 4),
                     Text(
-                      'Pinned by teacher',
+                      'Dipin oleh guru',
                       style: TextStyle(
                         color: const Color(0xFF2537B4),
                         fontWeight: FontWeight.bold,
@@ -394,11 +356,11 @@ class _QuestionDetailsScreenState extends State<QuestionDetailsScreen> with Tick
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: _getCategoryColor(_category ?? 'General'),
+                    color: _getCategoryColor(_category ?? 'Am'),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    _category ?? 'General',
+                    _category ?? 'Am',
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
@@ -408,7 +370,7 @@ class _QuestionDetailsScreenState extends State<QuestionDetailsScreen> with Tick
                 ),
                 const Spacer(),
                 Text(
-                  _repliesCount > 0 ? '$_repliesCount replies' : 'No replies',
+                  _repliesCount > 0 ? '$_repliesCount balasan' : 'Tiada balasan',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey[600],
@@ -462,7 +424,7 @@ class _QuestionDetailsScreenState extends State<QuestionDetailsScreen> with Tick
                       ),
                     ),
                     Text(
-                      'Posted this question',
+                      'Menyiarkan soalan ini',
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey[500],
@@ -525,7 +487,7 @@ class _QuestionDetailsScreenState extends State<QuestionDetailsScreen> with Tick
                     if (isAuthor)
                       _buildActionButton(
                         icon: Icons.delete,
-                        label: 'Delete',
+                        label: 'Padam',
                         color: Colors.red,
                         onTap: _showDeleteConfirmation,
                       ),
@@ -643,7 +605,7 @@ class _QuestionDetailsScreenState extends State<QuestionDetailsScreen> with Tick
           ),
           const SizedBox(height: 16),
           const Text(
-            'No replies yet',
+            'Tiada balasan lagi',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -652,7 +614,7 @@ class _QuestionDetailsScreenState extends State<QuestionDetailsScreen> with Tick
           ),
           const SizedBox(height: 8),
           const Text(
-            'Be the first to reply!',
+            'Jadi yang pertama membalas!',
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey,
@@ -793,7 +755,7 @@ class _QuestionDetailsScreenState extends State<QuestionDetailsScreen> with Tick
                     const SizedBox(width: 8),
                     _buildActionButton(
                       icon: Icons.delete,
-                      label: 'Delete',
+                      label: 'Padam',
                       color: Colors.red,
                       onTap: () => _showDeleteReplyConfirmation(replyId),
                     ),
@@ -808,11 +770,11 @@ class _QuestionDetailsScreenState extends State<QuestionDetailsScreen> with Tick
 
   Color _getCategoryColor(String category) {
     switch (category) {
-      case 'Pseudocode': //Pseudokod
+      case 'Pseudokod':
         return const Color(0xFF4CAF50);
-      case 'Flowchart': //Carta Alir
+      case 'Carta Alir':
         return const Color(0xFFFF9800);
-      default:
+      default: // 'Am'
         return const Color(0xFF2537B4);
     }
   }
@@ -822,13 +784,13 @@ class _QuestionDetailsScreenState extends State<QuestionDetailsScreen> with Tick
     final difference = now.difference(dateTime);
 
     if (difference.inMinutes < 1) {
-      return 'Just now';
+      return 'Baru sahaja';
     } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes} min${difference.inMinutes > 1 ? 's' : ''} ago';
+      return '${difference.inMinutes} minit yang lalu';
     } else if (difference.inHours < 24) {
-      return '${difference.inHours} hour${difference.inHours > 1 ? 's' : ''} ago';
+      return '${difference.inHours} jam yang lalu';
     } else if (difference.inDays < 7) {
-      return '${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
+      return '${difference.inDays} hari yang lalu';
     } else {
       return DateFormat('dd MMM yyyy').format(dateTime);
     }
@@ -861,12 +823,12 @@ class _QuestionDetailsScreenState extends State<QuestionDetailsScreen> with Tick
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-        title: const Text('Delete Reply'),
-        content: const Text('Are you sure you want to delete this reply? This action cannot be undone.'),
+        title: const Text('Padam Balasan'),
+        content: const Text('Adakah anda pasti ingin memadam balasan ini? Tindakan ini tidak boleh dibatalkan.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const Text('Batal'),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -877,7 +839,7 @@ class _QuestionDetailsScreenState extends State<QuestionDetailsScreen> with Tick
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Delete'),
+            child: const Text('Padam'),
           ),
         ],
       ),
@@ -909,7 +871,7 @@ class _QuestionDetailsScreenState extends State<QuestionDetailsScreen> with Tick
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Reply deleted successfully'),
+            content: const Text('Balasan berjaya dipadam'),
             backgroundColor: Colors.green[600],
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -923,7 +885,7 @@ class _QuestionDetailsScreenState extends State<QuestionDetailsScreen> with Tick
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Failed to delete reply'),
+            content: const Text('Balasan gagal dipadam'),
             backgroundColor: Colors.red[600],
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
