@@ -66,10 +66,8 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
 
   // Load password securely from flutter_secure_storage
   Future<void> loadSavedPassword() async {
-    // The key used here ('secure_password') must match the key used in your LoginPage
     final password = await _secureStorage.read(key: 'secure_password');
     setState(() {
-      // If password is null (not found), default to the placeholder message
       savedPassword = password ?? 'Password not stored locally.';
     });
   }
