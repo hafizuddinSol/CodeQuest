@@ -50,8 +50,8 @@ class _RegisterPageState extends State<RegisterPage> {
     if (_formKey.currentState!.validate() && _selectedRole != null) {
       try {
         // Create user in Firebase Auth
-        UserCredential userCredential = await FirebaseAuth.instance
-            .createUserWithEmailAndPassword(
+        UserCredential userCredential =
+        await FirebaseAuth.instance.createUserWithEmailAndPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
         );
@@ -66,7 +66,13 @@ class _RegisterPageState extends State<RegisterPage> {
           'createdAt': FieldValue.serverTimestamp(),
         });
 
-        // Callback to navigate to dashboard
+        // 🔥 Redirect to Login Page after success
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginPage()),
+        );
+
+        // You can also keep this callback if needed
         widget.onRegistered(_selectedRole!, _usernameController.text.trim());
       } on FirebaseAuthException catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -148,7 +154,10 @@ class _RegisterPageState extends State<RegisterPage> {
               DropdownButtonFormField<String>(
                 value: _selectedRole,
                 items: _roles
-                    .map((role) => DropdownMenuItem(value: role, child: Text(role)))
+                    .map(
+                      (role) =>
+                      DropdownMenuItem(value: role, child: Text(role)),
+                )
                     .toList(),
                 onChanged: (value) => setState(() => _selectedRole = value),
                 decoration: const InputDecoration(
@@ -172,16 +181,12 @@ class _RegisterPageState extends State<RegisterPage> {
                 onPressed: () {
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => const LoginPage(),
-                    ),
+                    MaterialPageRoute(builder: (_) => const LoginPage()),
                   );
                 },
                 child: const Text(
                   "Already have an account? Log in",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
             ],

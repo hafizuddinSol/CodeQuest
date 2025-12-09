@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'dashboardPage_student.dart'; // Import your DashboardPage
+import 'package:flutter_secure_storage/flutter_secure_storage.dart'; // Import secure storage
+import 'dashboardPage_student.dart';
 import 'registerPage.dart';
 import 'dashboardPage_teacher.dart';
+import 'ResetPasswordVerification.dart';
 
 const Color kPrimaryColor = Color(0xFF4256A4);
 const Color kBackgroundColor = Color(0xFFF0F0FF);
 
+// Create storage instance
+const storage = FlutterSecureStorage();
+
 class LoginPage extends StatefulWidget {
-  final void Function(String role, String username) ? onLoginSuccess;
+  final void Function(String role, String username)? onLoginSuccess;
   final VoidCallback? onSwitchToRegister;
 
   const LoginPage({super.key, this.onLoginSuccess, this.onSwitchToRegister});
@@ -33,6 +38,12 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
+  // Save password securely using flutter_secure_storage
+  Future<void> savePasswordSecurely(String password) async {
+    // Key used to store the password
+    await storage.write(key: 'secure_password', value: password);
+  }
+
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -44,7 +55,6 @@ class _LoginPageState extends State<LoginPage> {
       String email = input;
       String role = 'Student';
 
-      // Check if input is a username and get email + role
       if (!input.contains('@')) {
         final userQuery = await FirebaseFirestore.instance
             .collection('users')
@@ -64,17 +74,20 @@ class _LoginPageState extends State<LoginPage> {
         role = userData['role'] ?? 'Student';
       }
 
-      // Sign in with Firebase Auth
+      // 1. AUTHENTICATE PASSWORD (UNCHANGED)
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
+      // Firebase verifies the password hash here.
+
+      //SAVE PASSWORD LOCALLY (SECURELY MODIFIED)
+      await savePasswordSecurely(password);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Login successful!')),
       );
 
-      // ==== ROLE-BASED REDIRECT ====
       if (role == 'Teacher') {
         Navigator.pushReplacement(
           context,
@@ -112,7 +125,7 @@ class _LoginPageState extends State<LoginPage> {
           errorMessage = 'This account has been disabled.';
           break;
         default:
-          errorMessage = 'Login failed. Please try again.';
+          errorMessage = 'Login failed. Please try again. Code: ${e.code}';
       }
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage)));
     } catch (e) {
@@ -148,20 +161,53 @@ class _LoginPageState extends State<LoginPage> {
                   style: TextStyle(fontSize: 14, color: Colors.grey),
                 ),
                 const SizedBox(height: 32),
-                _buildInput(controller: _usernameOrEmailController, hintText: 'Email or Username', icon: Icons.person_outline),
+
+                _buildInput(
+                  controller: _usernameOrEmailController,
+                  hintText: 'Email or Username',
+                  icon: Icons.person_outline,
+                ),
+
                 const SizedBox(height: 16),
+
                 _buildInput(
                   controller: _passwordController,
                   hintText: 'Password',
                   icon: Icons.lock_outline,
                   obscureText: !_isPasswordVisible,
                   suffixIcon: IconButton(
-                    icon: Icon(_isPasswordVisible ? Icons.visibility : Icons.visibility_off, color: Colors.grey.shade500),
+                    icon: Icon(
+                      _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                      color: Colors.grey.shade500,
+                    ),
                     onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
                   ),
-                  onFieldSubmitted: (_) => _handleLogin(),
                 ),
+
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ResetPasswordVerification(),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      "Forgot Password?",
+                      style: TextStyle(
+                        color: kPrimaryColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+
                 const SizedBox(height: 24),
+
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -172,17 +218,25 @@ class _LoginPageState extends State<LoginPage> {
                       padding: const EdgeInsets.symmetric(vertical: 16.0),
                     ),
                     child: _isLoading
-                        ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
-                        : const Text('Log In', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                        ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                    )
+                        : const Text(
+                      'Log In',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
                   ),
                 ),
+
                 TextButton(
                   onPressed: () {
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
                         builder: (_) => RegisterPage(
-                          onRegistered: (_, __) {}, // No dashboard navigation
+                          onRegistered: (_, __) {},
                           onSwitchToLogin: () {
                             Navigator.pushReplacement(
                               context,
@@ -201,7 +255,6 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                 ),
-
               ],
             ),
           ),
@@ -232,7 +285,18 @@ class _LoginPageState extends State<LoginPage> {
         suffixIcon: suffixIcon,
         filled: true,
         fillColor: Colors.white,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12.0),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12.0),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12.0),
+          borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+        ),
       ),
     );
   }

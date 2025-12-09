@@ -1,9 +1,20 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-void main() {
-
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(const CodeQuestApp());
 }
+
+// Global instance for secure storage
+const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
 
 class CodeQuestApp extends StatelessWidget {
   const CodeQuestApp({super.key});
@@ -23,7 +34,6 @@ class CodeQuestApp extends StatelessWidget {
 }
 
 const Color primaryIndigo = Color(0xFF4F46E5);
-const Color darkIndigo = Color(0xFF4338CA);
 const Color lightBackground = Color(0xFFEEF2FF);
 const Color cardBackground = Color(0xFFA5B4FC);
 
@@ -35,48 +45,193 @@ class ProfileEditPage extends StatefulWidget {
 }
 
 class _ProfileEditPageState extends State<ProfileEditPage> {
-  // State to hold the profile image URL or file path.
-  String? _profileImage;
+  String? _profileImageUrl;
+  File? _selectedImage;
+  final ImagePicker _picker = ImagePicker();
 
-  void _handleImageUpload() {
+  String username = "";
+  String email = "";
+  String savedPassword = "Password not stored locally.";
+  bool isLoading = true;
+  bool _showPassword = false;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchUserData();
+    loadSavedPassword();
+  }
+
+  // Load password securely from flutter_secure_storage
+  Future<void> loadSavedPassword() async {
+    // The key used here ('secure_password') must match the key used in your LoginPage
+    final password = await _secureStorage.read(key: 'secure_password');
     setState(() {
-      // Toggle between a set image and unset image for demonstration
-      if (_profileImage == null) {
-        // Use a placeholder image URL for simulation
-        _profileImage = '';
-      } else {
-        _profileImage = null;
-      }
+      // If password is null (not found), default to the placeholder message
+      savedPassword = password ?? 'Password not stored locally.';
     });
+  }
+
+  // DATA FETCHING
+  Future<void> fetchUserData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      setState(() => isLoading = false);
+      return;
+    }
+
+    try {
+      final userDoc =
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+
+      if (userDoc.exists) {
+        final data = userDoc.data()!;
+        setState(() {
+          username = data['username'] ?? "";
+          email = data['email'] ?? user.email ?? "";
+          _profileImageUrl = data['profilePic'];
+          isLoading = false;
+        });
+      } else {
+        setState(() => isLoading = false);
+      }
+    } catch (e) {
+      print("Error fetching user data: $e");
+      setState(() => isLoading = false);
+    }
+  }
+
+  // IMAGE PICKER / UPLOAD LOGIC
+  void chooseImageSource() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo),
+                title: const Text("Choose from Gallery"),
+                onTap: () {
+                  Navigator.pop(context);
+                  pickAndUploadImage(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text("Take a Photo"),
+                onTap: () {
+                  Navigator.pop(context);
+                  pickAndUploadImage(ImageSource.camera);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> pickAndUploadImage(ImageSource source) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final pickedFile =
+      await _picker.pickImage(source: source, imageQuality: 80);
+      if (pickedFile == null) return;
+
+      setState(() => _selectedImage = File(pickedFile.path));
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Uploading profile picture...")),
+      );
+
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('profilePic')
+          .child('${user.uid}.jpg');
+
+      final uploadTask = await storageRef.putFile(_selectedImage!);
+      final downloadUrl = await uploadTask.ref.getDownloadURL();
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .update({'profilePic': downloadUrl});
+
+      setState(() {
+        _profileImageUrl = downloadUrl;
+        _selectedImage = null;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Profile picture updated successfully!")),
+      );
+    } on FirebaseException catch (e) {
+      print("FIREBASE UPLOAD ERROR: ${e.code} - ${e.message}");
+      setState(() => _selectedImage = null);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Upload failed. Check storage rules! (${e.code})"),
+        ),
+      );
+    } catch (e) {
+      print("GENERAL ERROR: $e");
+      setState(() => _selectedImage = null);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("An unexpected error occurred: $e")),
+      );
+    }
+  }
+
+  Widget buildProfileImage() {
+    if (_selectedImage != null) {
+      return Container(
+        width: 128,
+        height: 128,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          image: DecorationImage(
+            image: FileImage(_selectedImage!),
+            fit: BoxFit.cover,
+          ),
+        ),
+      );
+    } else if (_profileImageUrl != null && _profileImageUrl!.isNotEmpty) {
+      return Container(
+        width: 128,
+        height: 128,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          image: DecorationImage(
+            image: NetworkImage(_profileImageUrl!),
+            fit: BoxFit.cover,
+          ),
+        ),
+      );
+    } else {
+      return Container(
+        width: 128,
+        height: 128,
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white,
+        ),
+        child: const Icon(Icons.person, size: 64, color: primaryIndigo),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: lightBackground,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset(
-              'assets/images/CodeQuest.png',
-              height: 28,
-            ),
-            const SizedBox(width: 8),
-            const Text(
-              'CODEQUEST',
-              style: TextStyle(
-                color: primaryIndigo,
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-              ),
-            ),
-          ],
-        ),
-      ),
-      body: Center(
+      appBar: AppBar(),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator(color: primaryIndigo))
+          : Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Container(
@@ -97,89 +252,46 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Profile Picture Upload Area
-                GestureDetector(
-                  onTap: _handleImageUpload,
-                  child: Container(
-                    width: 128,
-                    height: 128,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 5,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
+                Stack(
+                  children: [
+                    GestureDetector(
+                      onTap: chooseImageSource,
+                      child: buildProfileImage(),
                     ),
-                    child: ClipOval(
-                      child: _profileImage != null
-                          ? Image.network(
-                        _profileImage!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                        const Center(
-                          child: Icon(Icons.error,
-                              size: 48, color: Colors.red),
-                        ),
-                      )
-                          : const Center(
-                        child: Icon(
-                          Icons.camera_alt,
-                          size: 48,
-                          color: primaryIndigo,
-                        ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: CircleAvatar(
+                        backgroundColor: primaryIndigo,
+                        radius: 20,
+                        child: const Icon(Icons.edit,
+                            color: Colors.white, size: 18),
                       ),
                     ),
-                  ),
+                  ],
                 ),
                 const SizedBox(height: 32),
+                DisplayField(label: "Username", value: username),
+                const SizedBox(height: 16),
+                DisplayField(label: "Email", value: email),
 
-                // Input Fields
-                const CustomInputField(
-                  hintText: 'Name',
-                  keyboardType: TextInputType.text,
-                ),
                 const SizedBox(height: 16),
-                const CustomInputField(
-                  hintText: 'Username',
-                  keyboardType: TextInputType.text,
-                ),
-                const SizedBox(height: 16),
-                const CustomInputField(
-                  hintText: 'Email',
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                const SizedBox(height: 16),
-                const CustomInputField(
-                  hintText: 'Password',
-                  obscureText: true,
-                  keyboardType: TextInputType.visiblePassword,
-                ),
-                const SizedBox(height: 32),
-
-                // Save Button
-                ElevatedButton(
-                  onPressed: () {
-                    // Handle Edit/Save action - currently a placeholder
+                PasswordField(
+                  password: savedPassword,
+                  showPassword: _showPassword,
+                  onToggle: () {
+                    setState(() => _showPassword = !_showPassword);
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryIndigo,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30.0),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 48, vertical: 16),
-                    textStyle: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  child: const Text('Edit'),
                 ),
+
+                const SizedBox(height: 32),
+                const Text(
+                  "This is your profile page.",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                )
               ],
             ),
           ),
@@ -189,56 +301,101 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
   }
 }
 
-class CustomInputField extends StatelessWidget {
-  final String hintText;
-  final bool obscureText;
-  final TextInputType keyboardType;
+class DisplayField extends StatelessWidget {
+  final String label;
+  final String value;
 
-  const CustomInputField({
-    super.key,
-    required this.hintText,
-    this.obscureText = false,
-    this.keyboardType = TextInputType.text,
-  });
+  const DisplayField({super.key, required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+      width: double.infinity,
       decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(30.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 5,
-            offset: const Offset(0, 3),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: primaryIndigo,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.black87,
+              fontSize: 16,
+            ),
           ),
         ],
       ),
-      child: TextField(
-        obscureText: obscureText,
-        keyboardType: keyboardType,
-        style: const TextStyle(color: Colors.black87),
-        decoration: InputDecoration(
-          hintText: hintText,
-          hintStyle: TextStyle(color: Colors.grey[400]),
-          fillColor: Colors.white,
-          filled: true,
-          contentPadding:
-          const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(30.0),
-            borderSide: BorderSide.none, // Removes the border line
+    );
+  }
+}
+
+class PasswordField extends StatelessWidget {
+  final String password;
+  final bool showPassword;
+  final VoidCallback onToggle;
+
+  const PasswordField({
+    super.key,
+    required this.password,
+    required this.showPassword,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final displayValue = showPassword ? password : "••••••••••";
+    final icon = showPassword ? Icons.visibility_off : Icons.visibility;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30.0),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Password",
+            style: TextStyle(
+              color: primaryIndigo,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(30.0),
-            borderSide: BorderSide.none,
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                displayValue,
+                style: const TextStyle(
+                  color: Colors.black87,
+                  fontSize: 16,
+                  fontFamily: 'monospace',
+                ),
+              ),
+              GestureDetector(
+                onTap: onToggle,
+                child: Icon(
+                  icon,
+                  color: primaryIndigo,
+                ),
+              ),
+            ],
           ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(30.0),
-            borderSide: const BorderSide(
-                color: primaryIndigo, width: 2.0), // Focus highlight
-          ),
-        ),
+        ],
       ),
     );
   }

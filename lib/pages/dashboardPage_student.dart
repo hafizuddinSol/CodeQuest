@@ -114,24 +114,6 @@ class _DashboardPage_StudentState extends State<DashboardPage_Student> {
     );
   }
 
-  void _signOut() async {
-    await FirebaseAuth.instance.signOut();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Signed out successfully"),
-        duration: Duration(seconds: 2),
-      ),
-    );
-
-    // Navigate to LoginPage and remove all previous routes
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginPage()),
-          (route) => false,
-    );
-  }
-
   void _showAddWidgetSheet() {
     showModalBottomSheet(
       context: context,

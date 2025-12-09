@@ -47,7 +47,7 @@ class ProgressWidget extends StatelessWidget {
                   ],
                 ),
                 IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white),
+                    icon: const Icon(Icons.close, color: Colors.black),
                     onPressed: onRemove),
               ],
             ),

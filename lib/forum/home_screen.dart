@@ -1,7 +1,12 @@
-//home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'question_details_screen.dart';
+import 'user_service.dart';
+import 'package:sulam_project/pages/dashboardPage_student.dart';
+import 'package:sulam_project/pages/dashboardPage_teacher.dart';
+import 'question_edit_dialog.dart';
+import 'add_question_dialog.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -10,368 +15,974 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  String _selectedCategory = 'All'; // filter category
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
+  String _selectedCategory = 'All';
+  bool _isTeacher = false;
+  String _userName = "Loading...";
+  String _userId = "";
+  bool _isLoading = true;
+  String _searchQuery = '';
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  bool _showScrollToTop = false;
+
+  // Add a key to preserve the state of the list
+  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey = GlobalKey<RefreshIndicatorState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeInOut,
+      ),
+    );
+    _animationController.forward();
+
+    _scrollController.addListener(() {
+      if (_scrollController.offset > 200 && !_showScrollToTop) {
+        setState(() {
+          _showScrollToTop = true;
+        });
+      } else if (_scrollController.offset <= 200 && _showScrollToTop) {
+        setState(() {
+          _showScrollToTop = false;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    _searchController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final isTeacher = await UserService().isTeacher();
+      final userName = await UserService().getUserName();
+      final userId = await UserService().getUserId();
+
+      setState(() {
+        _isTeacher = isTeacher;
+        _userName = userName;
+        _userId = userId;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading user data: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _goBackToDashboard() {
+    if (_isTeacher) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => DashboardPage_Teacher(
+            userRole: 'teacher',
+            username: _userName,
+          ),
+        ),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => DashboardPage_Student(
+            userRole: 'student',
+            username: _userName,
+          ),
+        ),
+      );
+    }
+  }
+
+  void _scrollToTop() {
+    _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOut,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final CollectionReference questions =
-    FirebaseFirestore.instance.collection('questions');
-
-    Query query = questions.orderBy('timestamp', descending: true);
-    if (_selectedCategory != 'All') {
-      query = query.where('category', isEqualTo: _selectedCategory);
+    if (_isLoading) {
+      return Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFF2537B4), Color(0xFF1A2799)],
+            ),
+          ),
+          child: SafeArea(
+            child: Column(
+              children: [
+                _buildAppBar(),
+                Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          'Loading Forum...',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.8),
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'CodeQuest Forum',
-          style: TextStyle(fontWeight: FontWeight.bold),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF2537B4), Color(0xFF1A2799)],
+          ),
         ),
-        centerTitle: true,
-        backgroundColor: const Color(0xFF2537B4),
-        foregroundColor: Colors.white,
-      ),
-      body: Column(
-        children: [
-          // 🔹 Filter dropdown
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: DropdownButtonFormField<String>(
-              initialValue: _selectedCategory,
-              decoration: InputDecoration(
-                labelText: 'Filter by category',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildAppBar(),
+              _buildSearchAndFilter(),
+              Expanded(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(24),
+                      topRight: Radius.circular(24),
+                    ),
+                  ),
+                  child: _buildQuestionsList(),
                 ),
-                contentPadding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               ),
-              items: const [
-                DropdownMenuItem(value: 'All', child: Text('All')),
-                DropdownMenuItem(value: 'Pseudocode', child: Text('Pseudocode')),
-                DropdownMenuItem(value: 'Flowchart', child: Text('Flowchart')),
-              ],
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() {
-                    _selectedCategory = value;
-                  });
-                }
-              },
+            ],
+          ),
+        ),
+      ),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          if (_showScrollToTop)
+            FloatingActionButton(
+              heroTag: "scrollToTop",
+              onPressed: _scrollToTop,
+              backgroundColor: Colors.white,
+              mini: true,
+              elevation: 4,
+              child: const Icon(Icons.keyboard_arrow_up, color: Color(0xFF2537B4)),
+            ),
+          const SizedBox(height: 10),
+          FloatingActionButton(
+            heroTag: "addQuestion",
+            backgroundColor: const Color(0xFF2537B4),
+            elevation: 6,
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => AddQuestionDialog(
+                  isTeacher: _isTeacher,
+                  userName: _userName,
+                  userId: _userId,
+                ),
+              );
+            },
+            child: const Icon(Icons.add, color: Colors.white),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAppBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: _goBackToDashboard,
+          ),
+          Expanded(
+            child: Text(
+              _isTeacher ? 'CodeQuest Forum (Teacher)' : 'CodeQuest Forum (Student)',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+                color: Colors.white,
+              ),
+              textAlign: TextAlign.center,
             ),
           ),
-
-          // 🔹 Forum posts
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              //stream: questions.orderBy('timestamp', descending: true).snapshots(),
-              //stream: query.snapshots(),
-              stream: _selectedCategory == 'All'
-                  ? FirebaseFirestore.instance
-                  .collection('questions')
-                  .orderBy('timestamp', descending: true)
-                  .snapshots()
-                  : FirebaseFirestore.instance
-                  .collection('questions')
-                  .where('category', isEqualTo: _selectedCategory)
-                  .orderBy('timestamp', descending: true)
-                  .snapshots(),
-
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'No questions yet.\nBe the first to ask!',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 16),
-                    ),
-                  );
-                }
-
-                final data = snapshot.data!.docs;
-
-                return ListView.builder(
-                  itemCount: data.length,
-                  itemBuilder: (context, index) {
-                    final question = data[index];
-                    final title = question['title'] ?? '';
-                    final content = question['content'] ?? '';
-                    final author = question['author'] ?? 'Anonymous';
-                    //final category = question['category'] ?? 'General';
-                    final category = question.data().toString().contains('category')
-                        ? question['category']
-                        : 'General';
-                    final timestamp = question['timestamp'] as Timestamp?;
-                    final dateString = timestamp != null
-                        ? DateFormat('dd MMM yyyy, hh:mm a')
-                        .format(timestamp.toDate())
-                        : 'Unknown time';
-
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: ListTile(
-                        title: Text(
-                          title,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              content,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  dateString,
-                                  style: const TextStyle(
-                                      fontSize: 12, color: Colors.grey),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: category == 'Pseudocode'
-                                        ? Colors.blue[100]
-                                        : category == 'Flowchart'
-                                        ? Colors.green[100]
-                                        : Colors.grey[200],
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    category,
-                                    style: const TextStyle(
-                                        fontSize: 12, color: Colors.black87),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        trailing: Text(
-                          author,
-                          style: const TextStyle(color: Colors.grey),
-                        ),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => PostDetailScreen(
-                                title: title,
-                                content: content,
-                                author: author,
-                                timestamp: dateString,
-                                category: category,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    );
-                  },
-                );
-              },
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Center(
+              child: Text(
+                _userName.isNotEmpty ? _userName[0].toUpperCase() : 'U',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
             ),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFF2537B4),
-        onPressed: () {
-          showDialog(
-            context: context,
-            builder: (context) => const AddQuestionDialog(),
-          );
+    );
+  }
+
+  Widget _buildSearchAndFilter() {
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: TextField(
+                controller: _searchController,
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value.toLowerCase();
+                  });
+                },
+                decoration: InputDecoration(
+                  hintText: 'Search questions...',
+                  prefixIcon: const Icon(Icons.search, color: Color(0xFF2537B4)),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                    icon: const Icon(Icons.clear, color: Color(0xFF2537B4)),
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() {
+                        _searchQuery = '';
+                      });
+                    },
+                  )
+                      : null,
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 50,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: [
+                  _buildCategoryChip('All', Icons.apps),
+                  _buildCategoryChip('General', Icons.chat),
+                  _buildCategoryChip('Pseudocode', Icons.code), //pseudokod
+                  _buildCategoryChip('Flowchart', Icons.account_tree), //carta-alir
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryChip(String category, IconData icon) {
+    final isSelected = _selectedCategory == category;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8.0),
+      child: FilterChip(
+        label: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: isSelected ? Colors.white : const Color(0xFF2537B4)),
+            const SizedBox(width: 6),
+            Text(category),
+          ],
+        ),
+        selected: isSelected,
+        onSelected: (selected) {
+          setState(() {
+            _selectedCategory = category;
+          });
         },
-        child: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: Colors.white,
+        selectedColor: const Color(0xFF2537B4),
+        labelStyle: TextStyle(
+          color: isSelected ? Colors.white : const Color(0xFF2537B4),
+        ),
+        side: const BorderSide(color: Color(0xFF2537B4)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        elevation: 2,
+        pressElevation: 4,
       ),
     );
   }
-}
 
-class AddQuestionDialog extends StatefulWidget {
-  const AddQuestionDialog({super.key});
+  Widget _buildQuestionsList() {
+    final CollectionReference questions = FirebaseFirestore.instance.collection('questions');
 
-  @override
-  State<AddQuestionDialog> createState() => _AddQuestionDialogState();
-}
+    Query query = questions.orderBy('pinned', descending: true).orderBy('timestamp', descending: true);
+    if (_selectedCategory != 'All') {
+      query = query.where('category', isEqualTo: _selectedCategory);
+    }
 
-class _AddQuestionDialogState extends State<AddQuestionDialog> {
-  final _titleController = TextEditingController();
-  final _contentController = TextEditingController();
-  final _authorController = TextEditingController();
-  String? _selectedCategory;
+    // Use a custom scroll physics that supports both touch and trackpad scrolling
+    return StreamBuilder<QuerySnapshot>(
+      stream: query.snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Ask a Question'),
-      content: SingleChildScrollView(
-        child: Column(
-          children: [
-            TextField(
-              controller: _titleController,
-              decoration: const InputDecoration(labelText: 'Title'),
-            ),
-            TextField(
-              controller: _contentController,
-              decoration: const InputDecoration(labelText: 'Content'),
-              maxLines: 3,
-            ),
-            TextField(
-              controller: _authorController,
-              decoration: const InputDecoration(labelText: 'Your Name'),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              decoration: const InputDecoration(labelText: 'Category'),
-              items: const [
-                DropdownMenuItem(value: 'Pseudocode', child: Text('Pseudocode')),
-                DropdownMenuItem(value: 'Flowchart', child: Text('Flowchart')),
-              ],
-              initialValue: _selectedCategory,
-              onChanged: (value) {
-                setState(() {
-                  _selectedCategory = value;
-                });
-              },
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: () async {
-            final title = _titleController.text.trim();
-            final content = _contentController.text.trim();
-            final author = _authorController.text.trim().isEmpty
-                ? 'Anonymous'
-                : _authorController.text.trim();
-            final category = _selectedCategory ?? 'General';
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return _buildEmptyState();
+        }
 
-            if (title.isEmpty || content.isEmpty) return;
+        final data = snapshot.data!.docs;
 
-            await FirebaseFirestore.instance.collection('questions').add({
-              'title': title,
-              'content': content,
-              'author': author,
-              'category': category,
-              'timestamp': FieldValue.serverTimestamp(),
-            });
+        // Filter by search query
+        final filteredData = _searchQuery.isEmpty
+            ? data
+            : data.where((doc) {
+          final title = doc['title']?.toString().toLowerCase() ?? '';
+          final content = doc['content']?.toString().toLowerCase() ?? '';
+          final author = doc['author']?.toString().toLowerCase() ?? '';
+          return title.contains(_searchQuery) ||
+              content.contains(_searchQuery) ||
+              author.contains(_searchQuery);
+        }).toList();
 
-            if (context.mounted) Navigator.pop(context);
+        if (filteredData.isEmpty) {
+          return _buildNoSearchResultsState();
+        }
+
+        // Use a custom scroll physics that works better with trackpad
+        return ListView.builder(
+          key: const PageStorageKey<String>('questions_list'),
+          controller: _scrollController,
+          // Use AlwaysScrollableScrollPhysics for better trackpad/mouse wheel support
+          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+          padding: const EdgeInsets.only(top: 16, bottom: 80),
+          itemCount: filteredData.length,
+          // Add cache extent to improve performance
+          cacheExtent: 250,
+          itemBuilder: (context, index) {
+            final question = filteredData[index];
+            return _buildQuestionCard(question);
           },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF2537B4),
-            foregroundColor: Colors.white,
-          ),
-          child: const Text('Post'),
-        ),
-      ],
+        );
+      },
     );
   }
-}
 
-// ✅ Post Details Screen
-class PostDetailScreen extends StatelessWidget {
-  final String title;
-  final String content;
-  final String author;
-  final String timestamp;
-  final String category;
-
-  const PostDetailScreen({
-    super.key,
-    required this.title,
-    required this.content,
-    required this.author,
-    required this.timestamp,
-    required this.category,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Post Details'),
-        backgroundColor: const Color(0xFF2537B4),
-        foregroundColor: Colors.white,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              color: const Color(0xFF2537B4).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(60),
+            ),
+            child: const Icon(
+              Icons.forum_outlined,
+              size: 60,
+              color: Color(0xFF2537B4),
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'No questions yet',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2537B4),
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Be the first to ask a question!',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => AddQuestionDialog(
+                  isTeacher: _isTeacher,
+                  userName: _userName,
+                  userId: _userId,
+                ),
+              );
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('Ask a Question'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2537B4),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
               ),
             ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Text(
-                  'By $author',
-                  style: const TextStyle(color: Colors.grey, fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNoSearchResultsState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              color: const Color(0xFF2537B4).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(60),
+            ),
+            child: const Icon(
+              Icons.search_off,
+              size: 60,
+              color: Color(0xFF2537B4),
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'No results found',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2537B4),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'No questions match "${_searchController.text}"',
+            style: const TextStyle(
+              fontSize: 16,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(height: 24),
+          TextButton.icon(
+            onPressed: () {
+              _searchController.clear();
+              setState(() {
+                _searchQuery = '';
+              });
+            },
+            icon: const Icon(Icons.clear),
+            label: const Text('Clear Search'),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF2537B4),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuestionCard(DocumentSnapshot question) {
+    final id = question.id;
+    final title = question['title'] ?? '';
+    final content = question['content'] ?? '';
+    final author = question['author'] ?? 'Anonymous';
+    final authorId = question['authorId'] ?? '';
+    final category = question.data().toString().contains('category')
+        ? question['category']
+        : 'General';
+    final timestamp = question['timestamp'] as Timestamp?;
+    final dateString = timestamp != null
+        ? _formatTimestamp(timestamp.toDate())
+        : 'Unknown time';
+    final upvotes = question['upvotes'] ?? 0;
+    final pinned = question['pinned'] ?? false;
+    final userUpvoted = question['upvotedBy'] != null &&
+        question['upvotedBy'].contains(_userId);
+    final isAuthor = _userId == authorId;
+    // Use null-aware operator to safely access repliesCount
+    final repliesCount = question.data().toString().contains('repliesCount')
+        ? question['repliesCount'] ?? 0
+        : 0;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: pinned ? Border.all(color: const Color(0xFF2537B4), width: 1.5) : null,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => QuestionDetailsScreen(
+                  questionId: id,
+                  title: title,
+                  content: content,
+                  author: author,
+                  isTeacher: _isTeacher,
+                  userId: _userId,
                 ),
-                const SizedBox(width: 10),
+              ),
+            );
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (pinned)
                 Container(
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
-                    color: category == 'Pseudocode'
-                        ? Colors.blue[100]
-                        : category == 'Flowchart'
-                        ? Colors.green[100]
-                        : Colors.grey[200],
-                    borderRadius: BorderRadius.circular(8),
+                    color: const Color(0xFF2537B4).withOpacity(0.1),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(16),
+                      topRight: Radius.circular(16),
+                    ),
                   ),
-                  child: Text(
-                    category,
-                    style: const TextStyle(fontSize: 12, color: Colors.black87),
+                  child: Row(
+                    children: [
+                      Icon(Icons.push_pin, size: 16, color: const Color(0xFF2537B4)),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Pinned by teacher',
+                        style: TextStyle(
+                          color: const Color(0xFF2537B4),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: _getCategoryColor(category),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            category,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          dateString,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Color(0xFF2537B4),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      content,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.black87,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 14,
+                          backgroundColor: const Color(0xFF2537B4).withOpacity(0.1),
+                          child: Text(
+                            author.isNotEmpty ? author[0].toUpperCase() : 'A',
+                            style: const TextStyle(
+                              color: Color(0xFF2537B4),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          author,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[700],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const Spacer(),
+                        Row(
+                          children: [
+                            _buildActionButton(
+                              icon: userUpvoted ? Icons.thumb_up : Icons.thumb_up_outlined,
+                              count: upvotes,
+                              isActive: userUpvoted,
+                              onTap: () => _toggleUpvote(id, userUpvoted),
+                            ),
+                            const SizedBox(width: 12),
+                            _buildActionButton(
+                              icon: Icons.comment_outlined,
+                              count: repliesCount,
+                              isActive: false,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => QuestionDetailsScreen(
+                                      questionId: id,
+                                      title: title,
+                                      content: content,
+                                      author: author,
+                                      isTeacher: _isTeacher,
+                                      userId: _userId,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              if (isAuthor || _isTeacher)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(16),
+                      bottomRight: Radius.circular(16),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      if (isAuthor)
+                        _buildActionTextButton(
+                          icon: Icons.edit,
+                          label: 'Edit',
+                          color: Colors.blue,
+                          onTap: () {
+                            QuestionEditDialog.show(
+                              context,
+                              questionId: id,
+                              currentTitle: title,
+                              currentContent: content,
+                              currentCategory: category,
+                            );
+                          },
+                        ),
+                      if (isAuthor) const SizedBox(width: 8),
+                      if (isAuthor)
+                        _buildActionTextButton(
+                          icon: Icons.delete,
+                          label: 'Delete',
+                          color: Colors.red,
+                          onTap: () => _showDeleteConfirmation(context, id),
+                        ),
+                      if (isAuthor && _isTeacher) const SizedBox(width: 8),
+                      if (_isTeacher)
+                        _buildActionTextButton(
+                          icon: pinned ? Icons.push_pin : Icons.push_pin_outlined,
+                          label: pinned ? 'Unpin' : 'Pin',
+                          color: pinned ? Colors.red : Colors.green,
+                          onTap: () async {
+                            await _togglePin(id, !pinned);
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required int count,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: isActive ? const Color(0xFF2537B4) : Colors.grey[600],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(width: 4),
             Text(
-              timestamp,
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-            const Divider(height: 24),
-            Expanded(
-              child: SingleChildScrollView(
-                child: Text(
-                  content,
-                  style: const TextStyle(fontSize: 16, height: 1.4),
-                ),
+              count.toString(),
+              style: TextStyle(
+                fontSize: 12,
+                color: isActive ? const Color(0xFF2537B4) : Colors.grey[600],
+                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildActionTextButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: color),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: color,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _getCategoryColor(String category) {
+    switch (category) {
+      case 'Pseudocode': //Pseudokod
+        return const Color(0xFF4CAF50);
+      case 'Flowchart': //Carta Alir
+        return const Color(0xFFFF9800);
+      default:
+        return const Color(0xFF2537B4);
+    }
+  }
+
+  String _formatTimestamp(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inMinutes < 1) {
+      return 'Just now';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes} min${difference.inMinutes > 1 ? 's' : ''} ago';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours} hour${difference.inHours > 1 ? 's' : ''} ago';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
+    } else {
+      return DateFormat('dd MMM yyyy').format(dateTime);
+    }
+  }
+
+  Future<void> _toggleUpvote(String questionId, bool currentlyUpvoted) async {
+    final userId = await UserService().getUserId();
+    final questionRef = FirebaseFirestore.instance.collection('questions').doc(questionId);
+
+    if (currentlyUpvoted) {
+      await questionRef.update({
+        'upvotes': FieldValue.increment(-1),
+        'upvotedBy': FieldValue.arrayRemove([userId])
+      });
+    } else {
+      await questionRef.update({
+        'upvotes': FieldValue.increment(1),
+        'upvotedBy': FieldValue.arrayUnion([userId])
+      });
+    }
+  }
+
+  Future<void> _togglePin(String questionId, bool pin) async {
+    await FirebaseFirestore.instance.collection('questions').doc(questionId).update({
+      'pinned': pin,
+    });
+  }
+
+  void _showDeleteConfirmation(BuildContext context, String questionId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Text('Delete Question'),
+        content: const Text('Are you sure you want to delete this question? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _deleteQuestion(questionId);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteQuestion(String questionId) async {
+    try {
+      // First, delete all replies to this question
+      final repliesSnapshot = await FirebaseFirestore.instance
+          .collection('questions')
+          .doc(questionId)
+          .collection('replies')
+          .get();
+
+      for (var doc in repliesSnapshot.docs) {
+        await doc.reference.delete();
+      }
+
+      // Then delete the question itself
+      await FirebaseFirestore.instance.collection('questions').doc(questionId).delete();
+
+      // Show a success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Question deleted successfully'),
+            backgroundColor: Colors.green[600],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error deleting question: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Failed to delete question'),
+            backgroundColor: Colors.red[600],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      }
+    }
   }
 }
