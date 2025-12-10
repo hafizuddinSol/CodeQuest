@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:sulam_project/learning/learning_teacher.dart';
 import '../widgets/notification_widget.dart';
 import '../miniGame_teacher/dashboard_minigame.dart';
 import '../forum/home_screen.dart';
-import '../learning/learningHomePage.dart';
+import '../learning/learning_teacher.dart';
 import 'logInPage.dart';
 import 'profilePage.dart';
 
@@ -154,7 +155,7 @@ class _DashboardPage_TeacherState extends State<DashboardPage_Teacher> {
             icon: const Icon(Icons.menu, color: Colors.white),
             onSelected: (value) {
               if (value == 'learning') {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const LearningHomePage()));
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const LearningTeacherPage()));
               } else if (value == 'forum') {
                 Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
               } else if (value == 'minigame') {

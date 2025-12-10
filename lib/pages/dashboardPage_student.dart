@@ -6,6 +6,7 @@ import '../widgets/RecentActivityWidget.dart';
 import '../miniGame_student/student_dashboard.dart';
 import '../forum/home_screen.dart';
 import '../learning/learningHomePage.dart';
+import '../learning/learning_student.dart';
 import 'logInPage.dart';
 import 'profilePage.dart';
 import '../widget_layout/layout_service.dart';
@@ -144,7 +145,7 @@ class _DashboardPage_StudentState extends State<DashboardPage_Student> {
             icon: const Icon(Icons.menu, color: Colors.white),
             onSelected: (value) {
               if (value == 'learning') {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const LearningHomePage()));
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const LearningStudentPage()));
               } else if (value == 'forum') {
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
               } else if (value == 'minigame') {

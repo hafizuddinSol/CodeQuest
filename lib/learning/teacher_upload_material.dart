@@ -14,8 +14,18 @@ class _TeacherUploadMaterialPageState extends State<TeacherUploadMaterialPage> {
   String? selectedFile;
 
   void _chooseFile() {
+    // Replace this with actual file picker logic
+    String fileName = "sample_upload.pdf"; // Mock file for now
+
+    if (!fileName.toLowerCase().endsWith('.pdf')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a PDF file only!')),
+      );
+      return;
+    }
+
     setState(() {
-      selectedFile = "sample_upload.pdf"; // Mock file
+      selectedFile = fileName;
     });
   }
 
@@ -66,18 +76,12 @@ class _TeacherUploadMaterialPageState extends State<TeacherUploadMaterialPage> {
           children: [
             TextField(
               controller: _titleController,
-              decoration: const InputDecoration(
-                labelText: 'Title',
-                border: OutlineInputBorder(),
-              ),
+              decoration: const InputDecoration(labelText: 'Title', border: OutlineInputBorder()),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _descController,
-              decoration: const InputDecoration(
-                labelText: 'Description',
-                border: OutlineInputBorder(),
-              ),
+              decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder()),
               maxLines: 3,
             ),
             const SizedBox(height: 16),
@@ -86,16 +90,14 @@ class _TeacherUploadMaterialPageState extends State<TeacherUploadMaterialPage> {
                 ElevatedButton.icon(
                   onPressed: _chooseFile,
                   icon: const Icon(Icons.attach_file),
-                  label: const Text('Choose File'),
+                  label: const Text('Choose PDF'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2537B4),
                     foregroundColor: Colors.white,
                   ),
                 ),
                 const SizedBox(width: 12),
-                Expanded(
-                  child: Text(selectedFile ?? 'No file selected'),
-                ),
+                Expanded(child: Text(selectedFile ?? 'No file selected')),
               ],
             ),
             const SizedBox(height: 20),
