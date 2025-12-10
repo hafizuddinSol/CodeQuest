@@ -100,9 +100,9 @@ class StudentDashboard extends StatelessWidget {
                     const SizedBox(height: 22),
                     const Text(
                       "List Scores",
-                        style: TextStyle(fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF2537B4)),
+                      style: TextStyle(fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF2537B4)),
                     ),
                     const SizedBox(height: 12),
                     _buildDashboardButton(
@@ -129,8 +129,7 @@ class StudentDashboard extends StatelessWidget {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('teacher_games')
-          .where('type', isEqualTo: type)
-          .orderBy('createdAt', descending: true)
+      .where('type', isEqualTo:type)
           .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData)

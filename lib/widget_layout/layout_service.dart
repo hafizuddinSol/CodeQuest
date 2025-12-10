@@ -1,4 +1,3 @@
-// layout_service.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'layout_model.dart';
 

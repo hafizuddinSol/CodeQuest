@@ -10,7 +10,7 @@ class FirebaseService {
     required int score,
   }) async {
     try {
-      // Save the game result
+      // Save the final game result
       await _db.collection('game_results').add({
         'name': name,
         'gameTitle': gameTitle,
@@ -18,10 +18,10 @@ class FirebaseService {
         'date': Timestamp.now(),
       });
 
-      // Update student's badges and scores
+      // Update badges & cumulative score
       await updateStudentScore(name, gameTitle, score);
 
-      // Clear any in-progress game
+      // Clear in-progress game
       await clearInProgressGame(name, gameTitle);
     } catch (e) {
       print('Error saving game result: $e');
@@ -45,22 +45,20 @@ class FirebaseService {
         'questionIndex': questionIndex,
         'timeLeft': timeLeft,
         'updatedAt': Timestamp.now(),
+        if (extraData != null) ...extraData,
       });
     } catch (e) {
       print('Error saving in-progress game: $e');
     }
   }
 
-
-
   // ---------------- Load In-Progress Game ----------------
-  Future<Map<String, dynamic>?> loadInProgressGame(String name, String gameTitle) async {
+  Future<Map<String, dynamic>?> loadInProgressGame(
+      String name, String gameTitle) async {
     try {
-      final doc = await _db.collection('in_progress_games').doc('$name-$gameTitle').get();
-      if (doc.exists) {
-        return doc.data();
-      }
-      return null;
+      final doc =
+      await _db.collection('in_progress_games').doc('$name-$gameTitle').get();
+      return doc.exists ? doc.data() : null;
     } catch (e) {
       print('Error loading in-progress game: $e');
       return null;
@@ -76,25 +74,14 @@ class FirebaseService {
     }
   }
 
-  //Delete In Progress
-  Future<void> deleteInProgressGame(String name, String gameTitle) async {
-    try {
-      await _db
-          .collection('in_progress_games')
-          .doc('$name-$gameTitle')
-          .delete();
-    } catch (e) {
-      print('Error deleting in-progress game: $e');
-    }
-  }
-
-
   // ---------------- Update Student Score & Badges ----------------
-  Future<void> updateStudentScore(String studentEmail, String gameTitle, int score) async {
+  Future<void> updateStudentScore(
+      String studentEmail, String gameTitle, int score) async {
     final docRef = _db.collection('student_badges').doc(studentEmail);
 
     try {
       final snapshot = await docRef.get();
+
       List<String> badges = [];
       Map<String, dynamic> scores = {};
 
@@ -104,26 +91,38 @@ class FirebaseService {
         scores = Map<String, dynamic>.from(data['scores'] ?? {});
       }
 
-      // Update score
-      scores[gameTitle] = score;
+      // --------- FIXED: Clean game titles ---------
+      String cleanGameTitle = gameTitle;
+      if (gameTitle.toLowerCase().contains("carta")) {
+        cleanGameTitle = "Permainan Carta Alir";
+      } else if (gameTitle.toLowerCase().contains("pseudo") ||
+          gameTitle.toLowerCase().contains("pseudokod")) {
+        cleanGameTitle = "Pseudokod";
+      }
 
-      // Assign badges based on performance
-      if (gameTitle == "Pseudocode Game" && score == 100 && !badges.contains("Code Master")) {
+      // Update score using the clean title
+      scores[cleanGameTitle] = score;
+
+      // --------- Badges ---------
+      if (cleanGameTitle == "Pseudokod" &&
+          score == 100 &&
+          !badges.contains("Code Master")) {
         badges.add("Code Master");
       }
-      if (gameTitle == "Permainan Carta Alir" && score == 100 && !badges.contains("Flowchart Guru")) {
+
+      if (cleanGameTitle == "Permainan Carta Alir" &&
+          score == 100 &&
+          !badges.contains("Flowchart Guru")) {
         badges.add("Flowchart Guru");
       }
 
-      // High Achiever badge: ≥80 in both games
-      if ((scores['Pseudocode Game'] ?? 0) >= 80 &&
-          (scores['Permainan Carta Alir'] ?? 0) >= 80) {
-        if (!badges.contains("High Achiever")) badges.add("High Achiever");
+      if ((scores.values.every((s) => s >= 80)) &&
+          !badges.contains("High Achiever")) {
+        badges.add("High Achiever");
       }
 
-      // Save/update the student document
       await docRef.set({
-        'name': studentEmail, // change to actual name if available
+        'name': studentEmail,
         'badges': badges,
         'scores': scores,
       }, SetOptions(merge: true));
@@ -132,23 +131,19 @@ class FirebaseService {
     }
   }
 
-  // ---------------- Get Student's Past Results ----------------
+  // ---------------- Get Student Past Results ----------------
   Stream<QuerySnapshot> getStudentResults(String name) {
-    try {
-      return _db
-          .collection('game_results')
-          .where('name', isEqualTo: name)
-          .orderBy('date', descending: true)
-          .limit(50) // load only latest 50 scores
-          .snapshots();
-    } catch (e) {
-      print('Error fetching student results: $e');
-      rethrow;
-    }
+    return _db
+        .collection('game_results')
+        .where('name', isEqualTo: name)
+        .orderBy('date', descending: true)
+        .limit(50)
+        .snapshots();
   }
 
   // ---------------- Create a New Game (Teacher) ----------------
-  Future<void> createGame(String title, List<Map<String, String>> questions) async {
+  Future<void> createGame(
+      String title, List<Map<String, String>> questions) async {
     try {
       await _db.collection('games').add({
         'gameTitle': title,
@@ -162,15 +157,10 @@ class FirebaseService {
 
   // ---------------- Get All Results (Teacher Analytics) ----------------
   Stream<QuerySnapshot> getAllResults() {
-    try {
-      return _db.collection('game_results').snapshots();
-    } catch (e) {
-      print('Error fetching all results: $e');
-      rethrow;
-    }
+    return _db.collection('game_results').snapshots();
   }
 
-  // ---------------- Save Flowchart (Teacher) ----------------
+  // ---------------- Save Flowchart ----------------
   Future<void> saveFlowchart({
     required String teacherName,
     required List<String> flowchart,
@@ -189,9 +179,9 @@ class FirebaseService {
   // ---------------- Get Flowchart By ID ----------------
   Future<Map<String, dynamic>?> getFlowchartById(String flowchartId) async {
     try {
-      final doc = await _db.collection('teacher_flowcharts').doc(flowchartId).get();
-      if (doc.exists) return doc.data();
-      return null;
+      final doc =
+      await _db.collection('teacher_flowcharts').doc(flowchartId).get();
+      return doc.exists ? doc.data() : null;
     } catch (e) {
       print('Error fetching flowchart: $e');
       return null;
@@ -199,7 +189,8 @@ class FirebaseService {
   }
 
   // ---------------- Update Existing Flowchart ----------------
-  Future<void> updateFlowchart(String flowchartId, List<String> flowchart) async {
+  Future<void> updateFlowchart(
+      String flowchartId, List<String> flowchart) async {
     try {
       await _db.collection('teacher_flowcharts').doc(flowchartId).update({
         'flowchart': flowchart,

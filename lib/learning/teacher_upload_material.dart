@@ -1,5 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 class TeacherUploadMaterialPage extends StatefulWidget {
   const TeacherUploadMaterialPage({super.key});
@@ -11,53 +14,85 @@ class TeacherUploadMaterialPage extends StatefulWidget {
 class _TeacherUploadMaterialPageState extends State<TeacherUploadMaterialPage> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
-  String? selectedFile;
 
-  void _chooseFile() {
-    // Replace this with actual file picker logic
-    String fileName = "sample_upload.pdf"; // Mock file for now
+  String? selectedFileName;
+  String? selectedFilePath;
 
-    if (!fileName.toLowerCase().endsWith('.pdf')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a PDF file only!')),
-      );
-      return;
-    }
+  // PICK PDF FILE
+  Future<void> _chooseFile() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf'],
+    );
+
+    if (result == null) return;
 
     setState(() {
-      selectedFile = fileName;
+      selectedFilePath = result.files.single.path;
+      selectedFileName = result.files.single.name;
     });
   }
 
+  // UPLOAD PDF TO STORAGE + FIRESTORE
   Future<void> _uploadMaterial() async {
-    if (_titleController.text.isEmpty || _descController.text.isEmpty || selectedFile == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all fields!')),
-      );
+    if (_titleController.text.isEmpty ||
+        _descController.text.isEmpty ||
+        selectedFilePath == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please fill in all fields and select a PDF file.')),
+        );
+      }
       return;
     }
 
     try {
-      await FirebaseFirestore.instance.collection('material').add({
-        'title': _titleController.text,
-        'desc': _descController.text,
-        'file': selectedFile,
-        'uploadedAt': FieldValue.serverTimestamp(),
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Material "${_titleController.text}" uploaded successfully!')),
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
       );
 
+      // Upload PDF to Firebase Storage
+      final storageRef = FirebaseStorage.instance.ref().child("pdf/${selectedFileName!}");
+      await storageRef.putFile(File(selectedFilePath!));
+
+      // Get PDF download URL
+      final downloadURL = await storageRef.getDownloadURL();
+
+      // Save material data to Firestore
+      await FirebaseFirestore.instance.collection('material').add({
+        "title": _titleController.text,
+        "desc": _descController.text, // keep field consistent with student view
+        "fileName": selectedFileName,
+        "pdfUrl": downloadURL,
+        "uploadedAt": FieldValue.serverTimestamp(),
+      });
+
+      // Close loading dialog
+      if (mounted) Navigator.pop(context);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Material "${_titleController.text}" uploaded successfully!')),
+        );
+      }
+
+      // Reset form
       _titleController.clear();
       _descController.clear();
       setState(() {
-        selectedFile = null;
+        selectedFilePath = null;
+        selectedFileName = null;
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Upload failed: $e')),
-      );
+      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Upload failed: $e')),
+        );
+      }
     }
   }
 
@@ -69,19 +104,25 @@ class _TeacherUploadMaterialPageState extends State<TeacherUploadMaterialPage> {
         backgroundColor: const Color(0xFF2537B4),
         foregroundColor: Colors.white,
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             TextField(
               controller: _titleController,
-              decoration: const InputDecoration(labelText: 'Title', border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: 'Title',
+                border: OutlineInputBorder(),
+              ),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _descController,
-              decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: 'Description',
+                border: OutlineInputBorder(),
+              ),
               maxLines: 3,
             ),
             const SizedBox(height: 16),
@@ -97,7 +138,12 @@ class _TeacherUploadMaterialPageState extends State<TeacherUploadMaterialPage> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Expanded(child: Text(selectedFile ?? 'No file selected')),
+                Expanded(
+                  child: Text(
+                    selectedFileName ?? 'No file selected',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 20),

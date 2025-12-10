@@ -4,7 +4,7 @@ import 'FlowchartBuilderGame.dart';
 import 'pseudocodeEditorGame.dart';
 import 'analyticsGame.dart';
 
-
+// ========================== STUDENTS PAGE ==========================
 class StudentsPage extends StatefulWidget {
   const StudentsPage({Key? key}) : super(key: key);
 
@@ -35,10 +35,15 @@ class _StudentsPageState extends State<StudentsPage> {
         ),
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('users').where('role', isEqualTo: 'Student').snapshots(),
+        stream: FirebaseFirestore.instance
+            .collection('users')
+            .where('role', isEqualTo: 'Student')
+            .snapshots(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const Center(child: Text("No students found."));
+          if (snapshot.connectionState == ConnectionState.waiting)
+            return const Center(child: CircularProgressIndicator());
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty)
+            return const Center(child: Text("No students found."));
 
           final students = snapshot.data!.docs;
 
@@ -47,7 +52,6 @@ class _StudentsPageState extends State<StudentsPage> {
             thickness: 6.0,
             radius: const Radius.circular(10),
             child: ListView.builder(
-
               controller: _scrollController,
               itemCount: students.length,
               itemBuilder: (context, index) {
@@ -55,13 +59,21 @@ class _StudentsPageState extends State<StudentsPage> {
                 final data = doc.data() as Map<String, dynamic>;
                 final username = data['username'] ?? 'Unknown';
                 final email = data['email'] ?? 'No email';
-                final createdAt = data['createdAt'] != null ? (data['createdAt'] as Timestamp).toDate().toString() : 'No date';
+                final createdAt = data['createdAt'] != null
+                    ? (data['createdAt'] as Timestamp).toDate().toString()
+                    : 'No date';
 
                 return ListTile(
-                  leading: CircleAvatar(child: Text(username.isNotEmpty ? username[0].toUpperCase() : '?')),
+                  leading: CircleAvatar(
+                      child: Text(username.isNotEmpty
+                          ? username[0].toUpperCase()
+                          : '?')),
                   title: Text(username),
                   subtitle: Text(email),
-                  trailing: Text(createdAt.split(' ').first, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  trailing: Text(
+                    createdAt.split(' ').first,
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
                 );
               },
             ),
@@ -72,20 +84,17 @@ class _StudentsPageState extends State<StudentsPage> {
   }
 }
 
-
-// ===================================================================
-// PAGE: Mini Games List
-// ===================================================================
+// ========================== MINI GAMES LIST ==========================
 class MiniGamesListPage extends StatefulWidget {
   final String teacherName;
-  const MiniGamesListPage({Key? key, required this.teacherName}) : super(key: key);
+  const MiniGamesListPage({Key? key, required this.teacherName})
+      : super(key: key);
 
   @override
   State<MiniGamesListPage> createState() => _MiniGamesListPageState();
 }
 
 class _MiniGamesListPageState extends State<MiniGamesListPage> {
-
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -107,27 +116,39 @@ class _MiniGamesListPageState extends State<MiniGamesListPage> {
           ),
         ),
       ),
-      floatingActionButton: Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-
-        FloatingActionButton(
-          heroTag: "migrateButton", backgroundColor: Colors.red,
-          onPressed: _migrateFromFlowchartsToGames,
-          child: const Icon(Icons.upload_file, color: Colors.white), tooltip: 'Migrate Old Games',
-        ),
-        const SizedBox(height: 10),
-
-        FloatingActionButton.extended(
-          heroTag: "createButton", backgroundColor: Colors.indigo,
-          icon: const Icon(Icons.add, size: 28),
-          label: const Text("Create Game", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          onPressed: () => _showGameTypeSelector(context),
-        ),
-      ]),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            heroTag: "migrateButton",
+            backgroundColor: Colors.red,
+            onPressed: _migrateFromFlowchartsToGames,
+            child: const Icon(Icons.upload_file, color: Colors.white),
+            tooltip: 'Migrate Old Games',
+          ),
+          const SizedBox(height: 10),
+          FloatingActionButton.extended(
+            heroTag: "createButton",
+            backgroundColor: Colors.indigo,
+            icon: const Icon(Icons.add, size: 28),
+            label: const Text("Create Game",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            onPressed: () => _showGameTypeSelector(context),
+          ),
+        ],
+      ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('teacher_games').where('teacherName', isEqualTo: widget.teacherName).orderBy('createdAt', descending: true).snapshots(),
+        stream: FirebaseFirestore.instance
+            .collection('teacher_games')
+            .orderBy('createdAt', descending: true)
+            .snapshots(),
+
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const Center(child: Text("No games available. Tap '+' to create one!"));
+          if (snapshot.connectionState == ConnectionState.waiting)
+            return const Center(child: CircularProgressIndicator());
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty)
+            return const Center(
+                child: Text("No games available. Tap '+' to create one!"));
 
           final games = snapshot.data!.docs;
           return Scrollbar(
@@ -135,7 +156,6 @@ class _MiniGamesListPageState extends State<MiniGamesListPage> {
             thickness: 6.0,
             radius: const Radius.circular(10),
             child: ListView.builder(
-
               controller: _scrollController,
               itemCount: games.length,
               itemBuilder: (context, index) {
@@ -145,16 +165,52 @@ class _MiniGamesListPageState extends State<MiniGamesListPage> {
                 final gameType = data['type'] as String? ?? 'Unknown';
 
                 return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  margin:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   child: ListTile(
-                    leading: CircleAvatar(backgroundColor: _getGameTypeColor(gameType), child: Icon(_getGameTypeIcon(gameType), color: Colors.white)),
-                    title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    leading: CircleAvatar(
+                        backgroundColor: _getGameTypeColor(gameType),
+                        child: Icon(_getGameTypeIcon(gameType),
+                            color: Colors.white)),
+                    title: Text(title,
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
                     subtitle: Text("Type: $gameType"),
-                    trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                      IconButton(icon: const Icon(Icons.edit, color: Color(0xFF2537B4)), onPressed: () => _editGameTitle(context, doc.id, title)),
-                      IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _confirmDeleteGame(context, doc.id, title)),
-                    ]),
-                    onTap: () => _openEditor(context, doc),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                            icon: const Icon(Icons.edit,
+                                color: Color(0xFF2537B4)),
+                            onPressed: () =>
+                                _editGameTitle(context, doc.id, title)),
+                        IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () =>
+                                _confirmDeleteGame(context, doc.id, title)),
+                      ],
+                    ),
+                    onTap: () {
+                      // Navigate to the correct game page for students
+                      Widget destination;
+                      if (gameType == "Carta Alir") {
+                        destination = FlowchartBuilderGame(
+                          teacherName: widget.teacherName,
+                          gameId: doc.id,
+                        );
+                      } else if (gameType == "pseudokod") {
+                        destination = PseudocodeEditorGamePage(
+                          teacherName: widget.teacherName,
+                          gameId: doc.id,
+                        );
+                      } else {
+                        return;
+                      }
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => destination),
+                      );
+                    },
                   ),
                 );
               },
@@ -165,87 +221,167 @@ class _MiniGamesListPageState extends State<MiniGamesListPage> {
     );
   }
 
-  // --- NAVIGATION & EDITOR LOGIC ---
-  void _openEditor(BuildContext context, DocumentSnapshot game) {
-    final type = game['type'] as String?;
-    final id = game.id;
-    if (type == null) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Error: Game type is missing."), backgroundColor: Colors.red)); return; }
-
-    Widget page;
-    switch (type) {
-      case "Carta Alir":
-        page = FlowchartBuilderGame(teacherName: widget.teacherName, gameId: id);
-        break;
-      case "pseudokod":
-        page = PseudocodeEditorGamePage(teacherName: widget.teacherName, gameId: id);
-        break;
-      default:
-        page = const Scaffold(body: Center(child: Text("Error: Unknown game type.")));
-    }
-    Navigator.push(context, MaterialPageRoute(builder: (_) => page));
-  }
-
   void _showGameTypeSelector(BuildContext context) {
     showModalBottomSheet(
       context: context,
       builder: (_) => Container(
         padding: const EdgeInsets.all(20),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Text("Create New Game", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          const Text("Create New Game",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 20),
-          ListTile(leading: const Icon(Icons.account_tree, color: Colors.blue), title: const Text("Carta Alir"), onTap: () { Navigator.pop(context); _createGame(context, "Carta Alir"); }),
-          ListTile(leading: const Icon(Icons.code, color: Colors.green), title: const Text("Pseudokod"), onTap: () { Navigator.pop(context); _createGame(context, "pseudokod"); }),
+          ListTile(
+              leading: const Icon(Icons.account_tree, color: Colors.blue),
+              title: const Text("Carta Alir"),
+              onTap: () {
+                Navigator.pop(context);
+                _createGame(context, "Carta Alir");
+              }),
+          ListTile(
+              leading: const Icon(Icons.code, color: Colors.green),
+              title: const Text("Pseudokod"),
+              onTap: () {
+                Navigator.pop(context);
+                _createGame(context, "pseudokod");
+              }),
         ]),
       ),
     );
   }
 
   Future<void> _createGame(BuildContext context, String type) async {
-    final newDocRef = await FirebaseFirestore.instance.collection('teacher_games').add({
-      'type': type, 'Title': "$type ", 'teacherName': widget.teacherName, 'createdAt': Timestamp.now(),
-      if (type == "Carta Alir") "Carta Alir": [], if (type == "pseudokod") "pseudokod": [],
+    await FirebaseFirestore.instance.collection('teacher_games').add({
+      'type': type,
+      'Title': "$type ",
+      'teacherName': widget.teacherName,
+      'createdAt': Timestamp.now(),
+      if (type == "Carta Alir") "Carta Alir": [],
+      if (type == "pseudokod") "pseudokod": [],
     });
-    final newDocSnapshot = await newDocRef.get();
-    _openEditor(context, newDocSnapshot);
   }
 
   void _editGameTitle(BuildContext context, String gameId, String oldTitle) async {
     final titleCtrl = TextEditingController(text: oldTitle);
-    showDialog(context: context, builder: (_) => AlertDialog(
-      title: const Text("Edit Game Title"),
-      content: TextField(controller: titleCtrl, decoration: const InputDecoration(hintText: "Game title")),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-        TextButton(onPressed: () async { if (titleCtrl.text.trim().isEmpty) return; await FirebaseFirestore.instance.collection('teacher_games').doc(gameId).update({'Title': titleCtrl.text.trim()}); Navigator.pop(context); }, child: const Text("Save")),
-      ],
-    ));
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Edit Game Title"),
+        content: TextField(
+          controller: titleCtrl,
+          decoration: const InputDecoration(hintText: "Game title"),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel")),
+          TextButton(
+              onPressed: () async {
+                if (titleCtrl.text.trim().isEmpty) return;
+                await FirebaseFirestore.instance
+                    .collection('teacher_games')
+                    .doc(gameId)
+                    .update({'Title': titleCtrl.text.trim()});
+                Navigator.pop(context);
+              },
+              child: const Text("Save")),
+        ],
+      ),
+    );
   }
 
   void _confirmDeleteGame(BuildContext context, String gameId, String title) {
-    showDialog(context: context, builder: (_) => AlertDialog(
-      title: const Text("Delete Game"), content: Text("Adakah anda pasti ingin hapuskan \"$title\"?"),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-        TextButton(onPressed: () async { await FirebaseFirestore.instance.collection('teacher_games').doc(gameId).delete(); Navigator.pop(context); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Game \"$title\" deleted."))); }, child: const Text("Delete", style: TextStyle(color: Colors.red))),
-      ],
-    ));
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Delete Game"),
+        content: Text("Adakah anda pasti ingin hapuskan \"$title\"?"),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel")),
+          TextButton(
+              onPressed: () async {
+                await FirebaseFirestore.instance
+                    .collection('teacher_games')
+                    .doc(gameId)
+                    .delete();
+                Navigator.pop(context);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Game \"$title\" deleted.")));
+                }
+              },
+              child: const Text("Delete", style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
   }
 
   Future<void> _migrateFromFlowchartsToGames() async {
-    final bool? confirm = await showDialog<bool>(context: context, builder: (context) => const AlertDialog(
-      title: Text("Confirm Migration"), content: Text("This will move all games from 'teacher_flowcharts' to 'teacher_games' and set their type to 'flowchart'. This is a one-time operation. Continue?"),
-      actions: [TextButton(child: Text("Cancel"), onPressed: null), TextButton(child: Text("Migrate"), onPressed: null)],
-    ));
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Confirm Migration"),
+        content: const Text(
+            "This will move all games from 'teacher_flowcharts' to 'teacher_games' and set their type to 'Carta Alir'. Continue?"),
+        actions: [
+          TextButton(
+              child: const Text("Cancel"), onPressed: () => Navigator.pop(context, false)),
+          TextButton(
+              child: const Text("Migrate"),
+              onPressed: () => Navigator.pop(context, true)),
+        ],
+      ),
+    );
+
     if (confirm != true) return;
-    print("Starting migration...");
-    final querySnapshot = await FirebaseFirestore.instance.collection('teacher_flowcharts').get();
-    final batch = FirebaseFirestore.instance.batch(); int migratedCount = 0;
-    for (var doc in querySnapshot.docs) { batch.set(FirebaseFirestore.instance.collection('teacher_games').doc(), {...doc.data()!, 'type': 'Carta Alir'}); migratedCount++; }
-    if (migratedCount > 0) { await batch.commit(); if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Successfully migrated $migratedCount games."))); } else { if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No games found to migrate."))); }
+
+    final querySnapshot =
+    await FirebaseFirestore.instance.collection('teacher_flowcharts').get();
+    final batch = FirebaseFirestore.instance.batch();
+    int migratedCount = 0;
+
+    for (var doc in querySnapshot.docs) {
+      batch.set(FirebaseFirestore.instance.collection('teacher_games').doc(),
+          {...doc.data(), 'type': 'Carta Alir'});
+      migratedCount++;
+    }
+
+    if (migratedCount > 0) {
+      await batch.commit();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Successfully migrated $migratedCount games.")));
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text("No games found to migrate.")));
+      }
+    }
   }
 
-  Color _getGameTypeColor(String? type) { switch (type) { case "Carta Alir": return Colors.blue; case "pseudokod": return Colors.green; default: return Colors.grey; } }
-  IconData _getGameTypeIcon(String? type) { switch (type) { case "Carta Alir": return Icons.account_tree; case "pseudokod": return Icons.code; default: return Icons.help_outline; } }
+  Color _getGameTypeColor(String? type) {
+    switch (type) {
+      case "Carta Alir":
+        return Colors.blue;
+      case "pseudokod":
+        return Colors.green;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getGameTypeIcon(String? type) {
+    switch (type) {
+      case "Carta Alir":
+        return Icons.account_tree;
+      case "pseudokod":
+        return Icons.code;
+      default:
+        return Icons.help_outline;
+    }
+  }
 }
 
 // PAGE: Leaderboard
@@ -354,7 +490,6 @@ class _DashboardMiniGamePageState extends State<DashboardMiniGamePage> {
     await FirebaseFirestore.instance.collection('users').where('role', isEqualTo: 'Student').get();
     final gamesSnapshot = await FirebaseFirestore.instance
         .collection('teacher_games')
-        .where('teacherName', isEqualTo: widget.teacherName)
         .get();
     final activeSnapshot =
     await FirebaseFirestore.instance.collection('users').get();

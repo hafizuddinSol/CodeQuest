@@ -1,9 +1,9 @@
-// pseudocode_game.dart
+
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/firebase_service.dart';
 import 'leaderboard_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PseudocodeFillGamePage extends StatefulWidget {
   final String studentName;
@@ -16,7 +16,8 @@ class PseudocodeFillGamePage extends StatefulWidget {
   });
 
   @override
-  _PseudocodeFillGamePageState createState() => _PseudocodeFillGamePageState();
+  _PseudocodeFillGamePageState createState() =>
+      _PseudocodeFillGamePageState();
 }
 
 class _PseudocodeFillGamePageState extends State<PseudocodeFillGamePage> {
@@ -31,7 +32,82 @@ class _PseudocodeFillGamePageState extends State<PseudocodeFillGamePage> {
   Timer? timer;
   bool _loading = true;
 
-  List<Map<String, dynamic>> questions = [];
+  List<Map<String, dynamic>> questions = [
+    {
+      "question": """
+Kod berikut menghasilkan output apa?
+
+int x = 5;
+int y = 10;
+if (x > y) {
+    System.out.println("X lebih besar daripada Y");
+} else {
+    System.out.println("X tidak lebih besar daripada Y");
+}
+""",
+      "answer": "X tidak lebih besar daripada Y",
+      "choices": [
+        "X lebih besar daripada Y",
+        "X tidak lebih besar daripada Y",
+        "Error",
+        "Tiada output"
+      ]
+    },
+    {
+      "question": """
+Lengkapkan for-loop supaya cetak nombor 1 hingga 5:
+
+for (int i = 1; ............ 5; i++) {
+    System.out.println(i);
+}
+""",
+      "answer": "i <= 5",
+      "choices": ["i < 5", "i <= 5", "i == 5", "i != 5"]
+    },
+    {
+      "question": """
+1. Mula
+2. Ulang
+3. Laksanakan blok penyataan berulang
+4. Selagi (syarat masih benar)
+5. Tamat
+
+Pilih struktur kawalan ulangan 
+""",
+      "answer": "do-while",
+      "choices": ["do-while", "for", "while"]
+    },
+    {
+      "question": """
+1. Mula
+2. Untuk pembilang dari nilai mula 
+hingga nilai henti lakukan
+3. Laksanakan blok
+penyataan berulang
+4. Tamat Untuk
+5. Tamat
+
+Pilih struktur kawalan ulangan 
+""",
+      "answer": "for",
+      "choices": ["do-while", "for", "while"]
+    },
+    {
+      "question": """
+1. Mula
+2. Selagi (syarat masih
+benar) lakukan
+3. Laksanakan blok
+penyataan berulang
+4. Tamat Selagi
+5. Tamat
+
+Pilih struktur kawalan ulangan 
+""",
+      "answer": "while",
+      "choices": ["do-while", "for", "while"]
+    },
+  ];
 
   @override
   void initState() {
@@ -46,27 +122,26 @@ class _PseudocodeFillGamePageState extends State<PseudocodeFillGamePage> {
   }
 
   Future<void> _loadTeacherQuestionsAndState() async {
+    // Try to fetch teacher-provided questions from teacher_games/{gameId}.questions
     try {
       final doc = await _db.collection('teacher_games').doc(widget.gameId).get();
       if (doc.exists) {
         final data = doc.data()!;
-        // Use the correct field containing questions
-        final dynamic q = data['pseudocode'] ?? data['questions'] ?? data['pseudocodeQuestions'];
-
+        final dynamic q = data['questions'] ?? data['pseudocodeQuestions'];
         if (q != null && q is List) {
-          questions = q.map<Map<String, dynamic>>((e) {
+          questions = q.map((e) {
             if (e is Map<String, dynamic>) return e;
             return Map<String, dynamic>.from(e);
           }).toList();
         }
       }
     } catch (e) {
-      print("Error loading teacher questions: $e");
+      // ignore or log if desired
     } finally {
       setState(() => _loading = false);
     }
 
-    // Check for saved in-progress game
+    // Then check saved progress
     final savedState = await _firebaseService.loadInProgressGame(
       widget.studentName,
       "Pseudocode Game_${widget.gameId}",
@@ -178,9 +253,6 @@ class _PseudocodeFillGamePageState extends State<PseudocodeFillGamePage> {
       score: score,
     );
 
-    // Remove in-progress
-    await _firebaseService.deleteInProgressGame(
-        widget.studentName, "Pseudocode Game_${widget.gameId}");
 
     if (!mounted) return;
     showDialog(
@@ -212,17 +284,6 @@ class _PseudocodeFillGamePageState extends State<PseudocodeFillGamePage> {
   Widget build(BuildContext context) {
     if (_loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
-    if (questions.isEmpty) {
-      return const Scaffold(
-        body: Center(
-          child: Text(
-            "Tiada soalan tersedia untuk permainan ini.",
-            style: TextStyle(fontSize: 18),
-          ),
-        ),
-      );
     }
 
     final currentQuestion = questions[questionIndex];

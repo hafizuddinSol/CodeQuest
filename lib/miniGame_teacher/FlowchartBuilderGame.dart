@@ -13,12 +13,11 @@ class FlowchartBuilderGame extends StatefulWidget {
 
 class _FlowchartBuilderGameState extends State<FlowchartBuilderGame> {
   final List<String> availableBlocks = [
-    'Start',
-    'Input',
-    'Decision',
-    'Process',
+    'Mula',
+    'Input A, B',
+    'Keputusan (A > B?)',
     'Output',
-    'End',
+    'Tamat'
   ];
 
   List<String> flowchartSequence = [];

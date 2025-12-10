@@ -8,7 +8,7 @@ import '../learning/learning_teacher.dart';
 import 'logInPage.dart';
 import 'profilePage.dart';
 
-const Color kPrimaryColor = Color(0xFF4256A4);
+const Color kPrimaryColor = Color(0xFF2537B4);
 const Color kBackgroundColor = Color(0xFFF0F0FF);
 
 class DashboardPage_Teacher extends StatefulWidget {
@@ -152,12 +152,18 @@ class _DashboardPage_TeacherState extends State<DashboardPage_Teacher> {
         ),
         actions: [
           PopupMenuButton<String>(
-            icon: const Icon(Icons.menu, color: Colors.white),
+            color: Colors.white,
+            elevation: 8,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            offset: const Offset(0, 50),
+            icon: const Icon(Icons.more_vert, color: Colors.white, size: 28),
             onSelected: (value) {
               if (value == 'learning') {
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const LearningTeacherPage()));
               } else if (value == 'forum') {
-                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
               } else if (value == 'minigame') {
                 _navigateToMiniGame();
               } else if (value == 'profile') {
@@ -167,28 +173,64 @@ class _DashboardPage_TeacherState extends State<DashboardPage_Teacher> {
               }
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'learning',
-                child: ListTile(leading: Icon(Icons.menu_book), title: Text('Learning Homepage')),
+                child: Row(
+                  children: const [
+                    Icon(Icons.menu_book_outlined, color: Colors.blueAccent),
+                    SizedBox(width: 12),
+                    Text("learning Homepage", style: TextStyle(fontSize: 15)),
+                  ],
+                ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'forum',
-                child: ListTile(leading: Icon(Icons.forum), title: Text('Forum')),
+                child: Row(
+                  children: const [
+                    Icon(Icons.forum_outlined, color: Colors.teal),
+                    SizedBox(width: 12),
+                    Text("Forum", style: TextStyle(fontSize: 15)),
+                  ],
+                ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'minigame',
-                child: ListTile(leading: Icon(Icons.videogame_asset), title: Text('Mini Game')),
+                child: Row(
+                  children: const [
+                    Icon(Icons.sports_esports_outlined, color: Colors.purple),
+                    SizedBox(width: 12),
+                    Text("Minigame", style: TextStyle(fontSize: 15)),
+                  ],
+                ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'profile',
-                child: ListTile(leading: Icon(Icons.person), title: Text('Profile')),
+                child: Row(
+                  children: const [
+                    Icon(Icons.person_outline, color: Colors.orange),
+                    SizedBox(width: 12),
+                    Text("Profile", style: TextStyle(fontSize: 15)),
+                  ],
+                ),
               ),
+
               const PopupMenuDivider(),
-              const PopupMenuItem(
+
+              PopupMenuItem(
                 value: 'signout',
-                child: ListTile(
-                  leading: Icon(Icons.logout, color: Colors.redAccent),
-                  title: Text('Sign Out', style: TextStyle(color: Colors.redAccent)),
+                child: Row(
+                  children: const [
+                    Icon(Icons.logout, color: Colors.redAccent),
+                    SizedBox(width: 12),
+                    Text(
+                      "Sign Out",
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Colors.redAccent,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

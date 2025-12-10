@@ -5,14 +5,12 @@ import '../widgets/progress_widget.dart';
 import '../widgets/RecentActivityWidget.dart';
 import '../miniGame_student/student_dashboard.dart';
 import '../forum/home_screen.dart';
-import '../learning/learningHomePage.dart';
 import '../learning/learning_student.dart';
 import 'logInPage.dart';
 import 'profilePage.dart';
 import '../widget_layout/layout_service.dart';
 import '../widget_layout/layout_model.dart';
 import '../widget_layout/widget_factory.dart';
-
 
 const Color kPrimaryColor = Color(0xFF2537B4);
 const Color kBackgroundColor = Color(0xFFF0F0FF);
@@ -38,7 +36,7 @@ class _DashboardPage_StudentState extends State<DashboardPage_Student> {
   String userId = ""; // will store Firebase user ID
 
 
-  // Filters
+
   bool showFilters = false;
   String timeFilter = "all";
   String topicFilter = "all";
@@ -142,7 +140,13 @@ class _DashboardPage_StudentState extends State<DashboardPage_Student> {
         ),
         actions: [
           PopupMenuButton<String>(
-            icon: const Icon(Icons.menu, color: Colors.white),
+            color: Colors.white,
+            elevation: 8,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            offset: const Offset(0, 50),
+            icon: const Icon(Icons.more_vert, color: Colors.white, size: 28),
             onSelected: (value) {
               if (value == 'learning') {
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const LearningStudentPage()));
@@ -157,28 +161,64 @@ class _DashboardPage_StudentState extends State<DashboardPage_Student> {
               }
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'learning',
-                child: ListTile(leading: Icon(Icons.menu_book), title: Text('Laman Utama Pelajaran')),
+                child: Row(
+                  children: const [
+                    Icon(Icons.menu_book_outlined, color: Colors.blueAccent),
+                    SizedBox(width: 12),
+                    Text("learning Homepage", style: TextStyle(fontSize: 15)),
+                  ],
+                ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'forum',
-                child: ListTile(leading: Icon(Icons.forum), title: Text('Forum')),
+                child: Row(
+                  children: const [
+                    Icon(Icons.forum_outlined, color: Colors.teal),
+                    SizedBox(width: 12),
+                    Text("Forum", style: TextStyle(fontSize: 15)),
+                  ],
+                ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'minigame',
-                child: ListTile(leading: Icon(Icons.videogame_asset), title: Text('Permainan')),
+                child: Row(
+                  children: const [
+                    Icon(Icons.sports_esports_outlined, color: Colors.purple),
+                    SizedBox(width: 12),
+                    Text("Minigame", style: TextStyle(fontSize: 15)),
+                  ],
+                ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'profile',
-                child: ListTile(leading: Icon(Icons.person), title: Text('Profile')),
+                child: Row(
+                  children: const [
+                    Icon(Icons.person_outline, color: Colors.orange),
+                    SizedBox(width: 12),
+                    Text("Profile", style: TextStyle(fontSize: 15)),
+                  ],
+                ),
               ),
+
               const PopupMenuDivider(),
-              const PopupMenuItem(
+
+              PopupMenuItem(
                 value: 'signout',
-                child: ListTile(
-                  leading: Icon(Icons.logout, color: Colors.redAccent),
-                  title: Text('Sign Out', style: TextStyle(color: Colors.redAccent)),
+                child: Row(
+                  children: const [
+                    Icon(Icons.logout, color: Colors.redAccent),
+                    SizedBox(width: 12),
+                    Text(
+                      "Sign Out",
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Colors.redAccent,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -208,7 +248,7 @@ class _DashboardPage_StudentState extends State<DashboardPage_Student> {
                   elevation: 1,
                 ),
                 icon: const Icon(Icons.filter_alt),
-                label: const Text("Filters"),
+                label: const Text("Tapisan"),
                 onPressed: () => setState(() => showFilters = !showFilters),
               ),
             ),
@@ -278,10 +318,10 @@ class _DashboardPage_StudentState extends State<DashboardPage_Student> {
                 value: topicFilter,
                 items: const [
                   DropdownMenuItem(value: "all", child: Text("All Topics")),
-                  DropdownMenuItem(value: "learning", child: Text("Learning")),
-                  DropdownMenuItem(value: "minigame", child: Text("Mini Game")),
-                  DropdownMenuItem(value: "forum", child: Text("Forum")),
-                  DropdownMenuItem(value: "profile", child: Text("Profile")),
+                  DropdownMenuItem(value: "pembelajaran", child: Text("Pembelajaran")),
+                  DropdownMenuItem(value: "permainan", child: Text("Permainan")),
+                  DropdownMenuItem(value: "perbincangan", child: Text("Perbincangan")),
+                  DropdownMenuItem(value: "profil", child: Text("Profil")),
                 ],
                 onChanged: (value) {
                   setState(() => topicFilter = value!);
@@ -379,7 +419,6 @@ class _DashboardPage_StudentState extends State<DashboardPage_Student> {
     _layoutService.saveLayout(userId, layout);
   }
 
-  // Corrected: Add widget + save layout
   void _addWidget(String type) {
     setState(() {
       final newIndex = widgets.length;

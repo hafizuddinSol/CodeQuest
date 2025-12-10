@@ -167,8 +167,8 @@ class _FlowchartBuilderGameStudentState
       score: score,
     );
 
-    await _firebaseService.deleteInProgressGame(
-        widget.studentName, "Permainan Carta Alir_${widget.gameId}");
+    // await _firebaseService.deleteInProgressGame(
+    //     widget.studentName, "Permainan Carta Alir_${widget.gameId}");
 
     if (!mounted) return;
     showDialog(

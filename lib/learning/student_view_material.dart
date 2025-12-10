@@ -2,25 +2,47 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class StudentViewMaterialPage extends StatelessWidget {
+class StudentViewMaterialPage extends StatefulWidget {
   const StudentViewMaterialPage({super.key});
 
-  Future<void> _openFile(String url, BuildContext context) async {
-    if (url.isEmpty) {
+  @override
+  State<StudentViewMaterialPage> createState() => _StudentViewMaterialPageState();
+}
+
+class _StudentViewMaterialPageState extends State<StudentViewMaterialPage> {
+  Future<void> _openFile(String? url) async {
+    if (url == null || url.isEmpty) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No file URL found')),
       );
       return;
     }
+
     final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
+
+    try {
+      // Try opening with external PDF viewer
+      final success = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!success) {
+        // Fallback → open in browser
+        await launchUrl(
+          uri,
+          mode: LaunchMode.platformDefault,
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cannot open file')),
+        SnackBar(content: Text('Error: $e')),
       );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -45,10 +67,10 @@ class StudentViewMaterialPage extends StatelessWidget {
           return ListView.builder(
             itemCount: materials.length,
             itemBuilder: (context, index) {
-              final doc = materials[index];
-              final title = doc['title'] ?? 'No Title';
-              final desc = doc['desc'] ?? 'No Description';
-              final fileUrl = doc['file'] ?? '';
+              final doc = materials[index].data() as Map<String, dynamic>;
+              final title = doc['title'] as String? ?? 'No Title';
+              final desc = doc['desc'] as String? ?? 'No Description';
+              final pdfUrl = doc['pdfUrl'] as String? ?? '';
 
               return Card(
                 margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
@@ -57,7 +79,7 @@ class StudentViewMaterialPage extends StatelessWidget {
                   subtitle: Text(desc),
                   trailing: IconButton(
                     icon: const Icon(Icons.download, color: Color(0xFF2537B4)),
-                    onPressed: () => _openFile(fileUrl, context),
+                    onPressed: () => _openFile(pdfUrl),
                   ),
                 ),
               );

@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class NotificationWidget extends StatelessWidget {
   final VoidCallback onRemove;
   final String timeFilter;   // "all", "today", "week", "month"
-  final String topicFilter;  // "all", "Learning", "Minigame", "Forum", "Profile", "Pseudocode", "Flowchart"
+  final String topicFilter;  // "all", "Pembelajaran", "Permainan", "Perbincagan", "Profil", "Pseudokod", "Carta Alir"
 
   const NotificationWidget({
     super.key,

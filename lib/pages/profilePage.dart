@@ -35,7 +35,7 @@ class CodeQuestApp extends StatelessWidget {
 
 const Color primaryIndigo = Color(0xFF4F46E5);
 const Color lightBackground = Color(0xFFEEF2FF);
-const Color cardBackground = Color(0xFFA5B4FC);
+const Color cardBackground = Color(0xFF2537B4);
 
 class ProfileEditPage extends StatefulWidget {
   const ProfileEditPage({super.key});
@@ -262,10 +262,10 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                       bottom: 0,
                       right: 0,
                       child: CircleAvatar(
-                        backgroundColor: primaryIndigo,
+                        backgroundColor: Colors.white,
                         radius: 20,
                         child: const Icon(Icons.edit,
-                            color: Colors.white, size: 18),
+                            color: primaryIndigo, size: 18),
                       ),
                     ),
                   ],

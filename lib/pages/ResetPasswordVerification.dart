@@ -199,7 +199,7 @@ class _ResetPasswordVerificationState
                         Expanded(
                           child: _CustomButton(
                             onPressed: _handleBack,
-                            label: const Text('Kembali',
+                            label: const Text('Back',
                                 style: TextStyle(fontWeight: FontWeight.bold)),
                           ),
                         ),

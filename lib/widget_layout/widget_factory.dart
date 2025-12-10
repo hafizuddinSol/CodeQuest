@@ -6,7 +6,7 @@ import '../widgets/RecentActivityWidget.dart';
 class WidgetFactory {
   static Widget buildWidget({
     required String id,
-    required void Function() onRemove, // <- explicit VoidCallback type
+    required void Function() onRemove,
     String? timeFilter,
     String? topicFilter,
   }) {

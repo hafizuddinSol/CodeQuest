@@ -1,4 +1,4 @@
-// layout_model.dart
+
 class DashboardLayout {
   final List<String> widgetOrder;
 
